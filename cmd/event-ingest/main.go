@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -20,13 +21,12 @@ type EventRouter struct {
 func NewEventRouter() *EventRouter {
 	app := gofr.New()
 
-	subjects := strings.Split(",", os.Getenv("NATS_SUBJECTS"))
+	subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
 
 	natsClient := nats.New(&nats.Config{
 		Server: os.Getenv("PUBSUB_BROKER"),
 		Stream: nats.StreamConfig{
-			Stream: os.Getenv("NATS_STREAM"),
-			// Subjects: []string{"orders.*", "shipments.*"},
+			Stream:   os.Getenv("NATS_STREAM"),
 			Subjects: subjects,
 		},
 		MaxWait:     5 * time.Second,
@@ -54,24 +54,38 @@ func (er *EventRouter) Start() {
 
 func (er *EventRouter) handleRawEvent(c *gofr.Context) error {
 	var rawEvent map[string]interface{}
-	if err := json.Unmarshal(c.Data(), &rawEvent); err != nil {
+	if err := c.Bind(&rawEvent); err != nil {
 		return err
 	}
 
 	event := cloudevents.NewEvent()
 	event.SetID(uuid.New().String())
 	event.SetSource("event-router")
-	event.SetType(rawEvent["type"].(string))
-	event.SetExtension("tenantid", rawEvent["tenant_id"].(string))
+
+	eventType, ok := rawEvent["type"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid event type")
+	}
+	event.SetType(eventType)
+
+	tenantID, ok := rawEvent["tenant_id"].(string)
+	if !ok {
+		return fmt.Errorf("missing or invalid tenant_id")
+	}
+	event.SetExtension("tenantid", tenantID)
+
 	err := event.SetData(cloudevents.ApplicationJSON, rawEvent)
 	if err != nil {
 		return err
 	}
 
-	eventJSON, _ := json.Marshal(event)
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
 
 	// Route to appropriate consumer queue based on event type
-	consumerQueue := "events." + rawEvent["type"].(string)
+	consumerQueue := "events." + eventType
 	if err := er.natsClient.Publish(c.Context, consumerQueue, eventJSON); err != nil {
 		return err
 	}
