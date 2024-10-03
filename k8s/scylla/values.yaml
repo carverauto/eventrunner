@@ -1,0 +1,19 @@
+datacenter: us-east-1
+racks:
+- name: us-east-1a
+  members: 4
+  storage:
+    capacity: 10Gi
+    storageClassName: local-path
+  resources:
+    limits:
+      cpu: 1
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 4Gi
+scyllaImage:
+  repository: scylladb/scylla
+agentImage:
+  repository: scylladb/scylla-manager-agent
+
