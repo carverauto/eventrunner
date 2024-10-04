@@ -224,6 +224,7 @@ func TestEventRouter_handleEvent_NonCloudEvent(t *testing.T) {
 		},
 		natsClient: mockNatsClient,
 	}
+	er.getBufferFunc = er.defaultGetBuffer
 
 	mockContainer, _ := container.NewMockContainer(t)
 
