@@ -24,15 +24,13 @@ type EventRouter struct {
 	bufferPool      *sync.Pool
 	middlewares     []Middleware
 	consumerManager EventConsumer
+	getBufferFunc   func() Buffer
 }
 
 type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
-func NewEventRouter(natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
-	app := gofr.New()
-
-	// Use provided cassandraClient or create a new one
+func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
 	if cassandraClient == nil {
 		// Configure Cassandra
 		cassandraConfig := cassandraPkg.Config{
@@ -49,7 +47,6 @@ func NewEventRouter(natsClient NATSClient, cassandraClient *cassandraPkg.Client)
 	// Add migrations to run
 	app.Migrate(migrations.All())
 
-	// Use provided natsClient or create a new one
 	if natsClient == nil {
 		subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
 		realNatsClient := nats.New(&nats.Config{
@@ -64,7 +61,7 @@ func NewEventRouter(natsClient NATSClient, cassandraClient *cassandraPkg.Client)
 			Consumer:    os.Getenv("NATS_CONSUMER"),
 			CredsFile:   os.Getenv("NATS_CREDS_FILE"),
 		})
-		realNatsClient.UseLogger(app.Logger)
+		realNatsClient.UseLogger(app.Logger())
 		realNatsClient.UseMetrics(app.Metrics())
 		realNatsClient.Connect()
 		natsClient = realNatsClient
@@ -76,12 +73,18 @@ func NewEventRouter(natsClient NATSClient, cassandraClient *cassandraPkg.Client)
 
 	consumerManager.AddConsumer("clickhouse", cassandraSink)
 
-	return &EventRouter{
+	er := &EventRouter{
 		app:             app,
 		natsClient:      natsClient,
 		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
 		consumerManager: consumerManager,
 	}
+	er.getBufferFunc = er.defaultGetBuffer
+	return er
+}
+
+func (er *EventRouter) defaultGetBuffer() Buffer {
+	return er.bufferPool.Get().(*bytes.Buffer)
 }
 
 func (er *EventRouter) Use(middleware Middleware) {
@@ -141,7 +144,7 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 	// Route to appropriate consumer queue based on event type
 	consumerQueue := fmt.Sprintf("events.%s", eventType)
 
-	buf := er.getBuffer()
+	buf := er.getBufferFunc()
 	defer er.putBuffer(buf)
 
 	if err := json.NewEncoder(buf).Encode(event); err != nil {

@@ -11,13 +11,13 @@ import (
 )
 
 type ConsumerManager struct {
-	app       *gofr.App
+	app       AppInterface
 	consumers map[string]EventConsumer
 	mu        sync.RWMutex
 	logger    pubsub.Logger
 }
 
-func NewConsumerManager(app *gofr.App, logger pubsub.Logger) *ConsumerManager {
+func NewConsumerManager(app AppInterface, logger pubsub.Logger) *ConsumerManager {
 	return &ConsumerManager{
 		app:       app,
 		consumers: make(map[string]EventConsumer),

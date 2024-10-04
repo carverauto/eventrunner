@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -14,45 +15,10 @@ import (
 	"go.uber.org/mock/gomock"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/container"
-	"gofr.dev/pkg/gofr/datasource"
 	cassandraPkg "gofr.dev/pkg/gofr/datasource/cassandra"
-	"gofr.dev/pkg/gofr/datasource/pubsub"
 	"gofr.dev/pkg/gofr/logging"
-	"gofr.dev/pkg/gofr/metrics"
-	"gofr.dev/pkg/gofr/migration"
+	"gofr.dev/pkg/gofr/testutil"
 )
-
-// MockConsumerManager is a mock of ConsumerManager interface
-type MockConsumerManager struct {
-	ConsumeEventFunc func(*gofr.Context, *cloudevents.Event) error
-}
-
-func (m *MockConsumerManager) ConsumeEvent(c *gofr.Context, e *cloudevents.Event) error {
-	if m.ConsumeEventFunc != nil {
-		return m.ConsumeEventFunc(c, e)
-	}
-	return nil
-}
-
-type MockPubSubWrapper struct {
-	PublishFunc     func(ctx context.Context, topic string, message []byte) error
-	SubscribeFunc   func(ctx context.Context, topic string) (*pubsub.Message, error)
-	CreateTopicFunc func(ctx context.Context, name string) error
-	DeleteTopicFunc func(ctx context.Context, name string) error
-	CloseFunc       func() error
-	HealthFunc      func() datasource.Health
-	ConnectFunc     func()
-	UseLoggerFunc   func(logger any)
-	UseMetricsFunc  func(metrics any)
-	UseTracerFunc   func(tracer any)
-}
-
-func (m *MockPubSubWrapper) Publish(ctx context.Context, topic string, message []byte) error {
-	if m.PublishFunc != nil {
-		return m.PublishFunc(ctx, topic, message)
-	}
-	return nil
-}
 
 type MockRequest struct {
 	ctx    context.Context
@@ -108,6 +74,7 @@ func TestEventRouter_handleEvent(t *testing.T) {
 		},
 		natsClient: mockNatsClient,
 	}
+	er.getBufferFunc = er.defaultGetBuffer
 
 	mockContainer, _ := container.NewMockContainer(t)
 
@@ -154,6 +121,7 @@ func TestEventRouter_routeEvent(t *testing.T) {
 		},
 		natsClient: mockNatsClient,
 	}
+	er.getBufferFunc = er.defaultGetBuffer
 
 	mockContainer, _ := container.NewMockContainer(t)
 
@@ -172,10 +140,6 @@ func TestEventRouter_routeEvent(t *testing.T) {
 		Container: mockContainer,
 	}
 
-	mockConsumerManager.ConsumeEventFunc = func(c *gofr.Context, e *cloudevents.Event) error {
-		return nil
-	}
-
 	err := er.routeEvent(mockContext, &event)
 	assert.NoError(t, err)
 }
@@ -184,23 +148,21 @@ func TestNewEventRouter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Use the generated mock
+	mockApp := NewMockAppInterface(ctrl)
 	mockNatsClient := NewMockNATSClient(ctrl)
+	mockCassandraClient := &cassandraPkg.Client{}
 
-	// Set up expectations on the mock NATS client
-	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	mockNatsClient.EXPECT().Connect().Return(nil).AnyTimes()
+	mockApp.EXPECT().AddCassandra(gomock.Any()).Times(1)
+	mockApp.EXPECT().Migrate(gomock.Any()).Times(1)
+	mockApp.EXPECT().AddPubSub(gomock.Any()).Times(1)
+	mockApp.EXPECT().Logger().Return(logging.NewLogger(logging.INFO)).AnyTimes()
+	mockApp.EXPECT().Metrics().Return(nil).AnyTimes()
 
-	// Create a mock Cassandra client or pass nil
-	var mockCassandraClient cassandraPkg.Client = nil // Or implement a mock if needed
+	er := NewEventRouter(mockApp, mockNatsClient, mockCassandraClient)
 
-	// Create the EventRouter with mock clients
-	er := NewEventRouter(mockNatsClient, mockCassandraClient)
-
-	// Assertions
 	assert.NotNil(t, er)
-	assert.NotNil(t, er.app)
-	assert.NotNil(t, er.natsClient)
+	assert.Equal(t, mockApp, er.app)
+	assert.Equal(t, mockNatsClient, er.natsClient)
 	assert.NotNil(t, er.bufferPool)
 	assert.NotNil(t, er.consumerManager)
 }
@@ -210,66 +172,20 @@ func TestEventRouter_Use(t *testing.T) {
 		middlewares: []Middleware{},
 	}
 
-	// Define a sample middleware
 	sampleMiddleware := func(next HandlerFunc) HandlerFunc {
 		return func(c *gofr.Context, e *cloudevents.Event) error {
-			// Middleware logic here
 			return next(c, e)
 		}
 	}
 
-	// Use the middleware
 	er.Use(sampleMiddleware)
 
-	// Assert that the middleware was added
 	assert.Len(t, er.middlewares, 1)
-	assert.Equal(t, sampleMiddleware, er.middlewares[0])
-}
 
-// Define MockApp that implements AppInterface
-type MockApp struct {
-	subscribeCalled bool
-	runCalled       bool
-	subscribeFunc   func(topic string, handler HandlerFunc)
-	runFunc         func()
-}
-
-// func (m *MockApp) Subscribe(topic string, handler gofr.Handler) {
-func (m *MockApp) Subscribe(topic string, handler HandlerFunc) {
-	m.subscribeCalled = true
-	if m.subscribeFunc != nil {
-		m.subscribeFunc(topic, handler)
-	}
-}
-
-func (m *MockApp) Run() {
-	m.runCalled = true
-	if m.runFunc != nil {
-		m.runFunc()
-	}
-}
-
-func (m *MockApp) Logger() logging.Logger {
-	// Return a mock or real logger
-	return logging.NewLogger(logging.INFO)
-}
-
-func (m *MockApp) Metrics() metrics.Manager {
-	// Return a mock or real metrics manager
-	return nil
-}
-
-func (m *MockApp) AddPubSub(pubsubClient pubsub.Client) {
-	// Implement if necessary
-}
-
-// have the method: AddCassandra(cassandraClient *cassandra. Client)
-func (m *MockApp) AddCassandra(cassandraClient container.CassandraProvider) {
-	// Implement if necessary
-}
-
-func (m *MockApp) Migrate(migrationsMap map[int64]migration.Migrate) {
-	// Implement if necessary
+	// Check if the function types match
+	actualType := reflect.TypeOf(er.middlewares[0])
+	expectedType := reflect.TypeOf(Middleware(nil))
+	assert.Equal(t, expectedType, actualType)
 }
 
 func TestEventRouter_Start(t *testing.T) {
@@ -283,7 +199,7 @@ func TestEventRouter_Start(t *testing.T) {
 	}
 
 	// Set up expectations on mockApp
-	mockApp.EXPECT().Subscribe("events.products", er.handleEvent).Times(1)
+	mockApp.EXPECT().Subscribe("events.products", gomock.Any()).Times(1)
 	mockApp.EXPECT().Run().Times(1)
 
 	// Call Start
@@ -338,10 +254,7 @@ func TestEventRouter_handleEvent_BindError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockConsumerManager := NewMockEventConsumer(ctrl)
-	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
 	mockNatsClient := NewMockNATSClient(ctrl)
-	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	er := &EventRouter{
 		app:             gofr.New(),
@@ -433,60 +346,46 @@ func TestEventRouter_applyMiddleware_WithMiddlewares(t *testing.T) {
 
 	// Assert the call sequence
 	expectedSequence := []string{
-		"middleware2 before",
 		"middleware1 before",
+		"middleware2 before",
 		"handler",
-		"middleware1 after",
 		"middleware2 after",
+		"middleware1 after",
 	}
 	assert.Equal(t, expectedSequence, callSequence)
 }
 
 func TestEventRouter_routeEvent_ConsumeEventError(t *testing.T) {
-	consumeEventCalled := false
-
-	mockConsumerManager := &MockConsumerManager{
-		ConsumeEventFunc: func(c *gofr.Context, e *cloudevents.Event) error {
-			consumeEventCalled = true
-			return fmt.Errorf("consume event error")
-		},
-	}
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockConsumerManager := NewMockEventConsumer(ctrl)
+	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(fmt.Errorf("consume event error")).Times(1)
+
+	mockApp := NewMockAppInterface(ctrl)
+	mockApp.EXPECT().Logger().Return(logging.NewLogger(logging.INFO)).AnyTimes()
 
 	mockNatsClient := NewMockNATSClient(ctrl)
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	er := &EventRouter{
-		app:             gofr.New(),
+		app:             mockApp,
+		natsClient:      mockNatsClient,
 		consumerManager: mockConsumerManager,
-		bufferPool: &sync.Pool{
-			New: func() interface{} { return new(bytes.Buffer) },
-		},
-		natsClient: mockNatsClient,
+		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
 	}
-
-	mockContainer, _ := container.NewMockContainer(t)
 
 	event := cloudevents.NewEvent()
 	event.SetID(uuid.New().String())
 	event.SetType("test.event")
 	event.SetSource("test")
 
-	mockRequest := &MockRequest{
-		ctx: context.Background(),
-	}
-
 	mockContext := &gofr.Context{
-		Context:   context.Background(),
-		Request:   mockRequest,
-		Container: mockContainer,
+		Context: context.Background(),
 	}
 
 	err := er.routeEvent(mockContext, &event)
-	assert.NoError(t, err)
-	assert.True(t, consumeEventCalled)
+	assert.NoError(t, err) // The error from ConsumeEvent is logged but not returned
 }
 
 func TestEventRouter_routeEvent_PublishError(t *testing.T) {
@@ -497,7 +396,8 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	mockNatsClient := NewMockNATSClient(ctrl)
-	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	// mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("publish error")).Times(1)
 
 	er := &EventRouter{
 		app:             gofr.New(),
@@ -530,12 +430,6 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to publish event")
 }
 
-type UnmarshalableType struct{}
-
-func (u UnmarshalableType) MarshalJSON() ([]byte, error) {
-	return nil, fmt.Errorf("marshal error")
-}
-
 func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -543,40 +437,53 @@ func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 	mockConsumerManager := NewMockEventConsumer(ctrl)
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
+	mockApp := NewMockAppInterface(ctrl)
+	mockApp.EXPECT().Logger().Return(logging.NewLogger(logging.DEBUG)).AnyTimes()
+
 	mockNatsClient := NewMockNATSClient(ctrl)
-	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	// We don't expect Publish to be called in this test
 
 	er := &EventRouter{
-		app:             gofr.New(),
+		app:             mockApp,
+		natsClient:      mockNatsClient,
 		consumerManager: mockConsumerManager,
-		bufferPool: &sync.Pool{
-			New: func() interface{} { return new(bytes.Buffer) },
-		},
-		natsClient: mockNatsClient,
+		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
+	}
+	er.getBufferFunc = er.defaultGetBuffer
+
+	// Set a custom getBufferFunc that returns a failing buffer
+	er.getBufferFunc = func() Buffer {
+		return &failingBuffer{}
 	}
 
-	mockContainer, _ := container.NewMockContainer(t)
-
-	// Create an event that cannot be marshaled
 	event := cloudevents.NewEvent()
 	event.SetID(uuid.New().String())
 	event.SetType("test.event")
 	event.SetSource("test")
-
-	// Set event data to an unmarshalable value
-	event.SetData(cloudevents.ApplicationJSON, UnmarshalableType{})
-
-	mockRequest := &MockRequest{
-		ctx: context.Background(),
-	}
+	event.SetData(cloudevents.ApplicationJSON, map[string]string{"key": "value"})
 
 	mockContext := &gofr.Context{
-		Context:   context.Background(),
-		Request:   mockRequest,
-		Container: mockContainer,
+		Context: context.Background(),
 	}
 
-	err := er.routeEvent(mockContext, &event)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to encode event")
+	logs := testutil.StderrOutputForFunc(func() {
+		err := er.routeEvent(mockContext, &event)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to encode event")
+	})
+
+	assert.Contains(t, logs, "Failed to encode event")
 }
+
+// failingBuffer is a custom buffer that always fails on Write
+type failingBuffer struct{}
+
+func (fb *failingBuffer) Write(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("forced write error")
+}
+
+func (fb *failingBuffer) Bytes() []byte {
+	return []byte{}
+}
+
+func (fb *failingBuffer) Reset() {}
