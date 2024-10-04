@@ -66,7 +66,7 @@ func NewEventRouter() *EventRouter {
 
 	app.AddPubSub(natsClient)
 
-	consumerManager := NewConsumerManager(app)
+	consumerManager := NewConsumerManager(app, app.Logger())
 	cassandraSink := NewCassandraEventSink()
 
 	consumerManager.AddConsumer("clickhouse", cassandraSink)
