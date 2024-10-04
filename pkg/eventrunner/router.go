@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	"gofr.dev/pkg/gofr"
 	cassandraPkg "gofr.dev/pkg/gofr/datasource/cassandra"
+	"gofr.dev/pkg/gofr/logging"
 )
 
 type EventRouter struct {
@@ -25,6 +26,7 @@ type EventRouter struct {
 	middlewares     []Middleware
 	consumerManager EventConsumer
 	getBufferFunc   func() Buffer
+	logger          logging.Logger
 }
 
 type Middleware func(HandlerFunc) HandlerFunc
@@ -78,6 +80,7 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 		natsClient:      natsClient,
 		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
 		consumerManager: consumerManager,
+		logger:          app.Logger(),
 	}
 	er.getBufferFunc = er.defaultGetBuffer
 	return er
@@ -134,7 +137,7 @@ func (er *EventRouter) applyMiddleware(handler HandlerFunc) HandlerFunc {
 func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) error {
 	// Log event using ConsumerManager
 	if err := er.consumerManager.ConsumeEvent(c, event); err != nil {
-		er.app.Logger().Errorf("Failed to consume event: %v", err)
+		er.logger.Errorf("Failed to consume event: %v", err)
 		// Continue processing even if logging fails
 	}
 
@@ -156,7 +159,7 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 		return fmt.Errorf("failed to publish event: %w", err)
 	}
 
-	er.app.Logger().Logf("published event %s to %s for tenant %s", messageID, consumerQueue, tenantID)
+	er.logger.Logf("published event %s to %s for tenant %s", messageID, consumerQueue, tenantID)
 
 	return nil
 }

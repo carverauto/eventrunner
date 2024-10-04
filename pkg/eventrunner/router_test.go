@@ -364,7 +364,8 @@ func TestEventRouter_routeEvent_ConsumeEventError(t *testing.T) {
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(fmt.Errorf("consume event error")).Times(1)
 
 	mockApp := NewMockAppInterface(ctrl)
-	mockApp.EXPECT().Logger().Return(logging.NewLogger(logging.INFO)).AnyTimes()
+	mockLogger := logging.NewMockLogger(logging.INFO)
+	mockApp.EXPECT().Logger().Return(mockLogger).AnyTimes()
 
 	mockNatsClient := NewMockNATSClient(ctrl)
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -374,7 +375,9 @@ func TestEventRouter_routeEvent_ConsumeEventError(t *testing.T) {
 		natsClient:      mockNatsClient,
 		consumerManager: mockConsumerManager,
 		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
+		logger:          mockLogger,
 	}
+	er.getBufferFunc = er.defaultGetBuffer // Add this line
 
 	event := cloudevents.NewEvent()
 	event.SetID(uuid.New().String())
@@ -408,6 +411,7 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 		},
 		natsClient: mockNatsClient,
 	}
+	er.getBufferFunc = er.defaultGetBuffer // Add this line
 
 	mockContainer, _ := container.NewMockContainer(t)
 
@@ -468,6 +472,7 @@ func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 	}
 
 	logs := testutil.StderrOutputForFunc(func() {
+		er.logger = logging.NewMockLogger(logging.DEBUG)
 		err := er.routeEvent(mockContext, &event)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to encode event")
