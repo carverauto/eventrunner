@@ -19,11 +19,13 @@ import (
 )
 
 type EventRouter struct {
-	app             *gofr.App
-	natsClient      *nats.PubSubWrapper
-	bufferPool      *sync.Pool
-	middlewares     []Middleware
-	consumerManager *ConsumerManager
+	app *gofr.App
+	// natsClient  *nats.PubSubWrapper
+	natsClient  NATSClient
+	bufferPool  *sync.Pool
+	middlewares []Middleware
+	// consumerManager *ConsumerManager
+	consumerManager EventConsumer
 }
 
 type Middleware func(HandlerFunc) HandlerFunc

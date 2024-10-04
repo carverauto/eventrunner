@@ -31,7 +31,7 @@ func TestConsumerManager_AddConsumer(t *testing.T) {
 	logger := logging.NewMockLogger(logging.DEBUG)
 	cm := NewConsumerManager(app, logger)
 
-	consumer := NewMockConsumer(ctrl)
+	consumer := NewMockEventConsumer(ctrl)
 	cm.AddConsumer("test", consumer)
 
 	assert.Len(t, cm.consumers, 1)
@@ -55,21 +55,21 @@ func TestConsumerManager_ConsumeEvent(t *testing.T) {
 	})
 
 	t.Run("Single successful consumer", func(t *testing.T) {
-		consumer := NewMockConsumer(ctrl)
+		consumer := NewMockEventConsumer(ctrl)
 		consumer.EXPECT().ConsumeEvent(mockContext, &mockEvent).Return(nil)
 		cm.AddConsumer("test", consumer)
 
 		err := cm.ConsumeEvent(mockContext, &mockEvent)
 		assert.NoError(t, err)
 
-		cm.consumers = make(map[string]Consumer) // Reset consumers
+		cm.consumers = make(map[string]EventConsumer) // Reset consumers
 	})
 
 	t.Run("Multiple consumers, one fails", func(t *testing.T) {
-		successConsumer := NewMockConsumer(ctrl)
+		successConsumer := NewMockEventConsumer(ctrl)
 		successConsumer.EXPECT().ConsumeEvent(mockContext, &mockEvent).Return(nil)
 
-		failConsumer := NewMockConsumer(ctrl)
+		failConsumer := NewMockEventConsumer(ctrl)
 		failConsumer.EXPECT().ConsumeEvent(mockContext, &mockEvent).Return(fmt.Errorf("consumer failed"))
 
 		cm.AddConsumer("success", successConsumer)
@@ -79,7 +79,7 @@ func TestConsumerManager_ConsumeEvent(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "consumer fail failed: consumer failed")
 
-		cm.consumers = make(map[string]Consumer) // Reset consumers
+		cm.consumers = make(map[string]EventConsumer) // Reset consumers
 	})
 
 	t.Run("Nil consumer", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestConsumerManager_ConsumeEvent(t *testing.T) {
 		err := cm.ConsumeEvent(mockContext, &mockEvent)
 		assert.NoError(t, err)
 
-		cm.consumers = make(map[string]Consumer) // Reset consumers
+		cm.consumers = make(map[string]EventConsumer) // Reset consumers
 	})
 
 	t.Run("Nil context", func(t *testing.T) {

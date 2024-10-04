@@ -12,7 +12,7 @@ import (
 
 type ConsumerManager struct {
 	app       *gofr.App
-	consumers map[string]Consumer
+	consumers map[string]EventConsumer
 	mu        sync.RWMutex
 	logger    pubsub.Logger
 }
@@ -20,12 +20,12 @@ type ConsumerManager struct {
 func NewConsumerManager(app *gofr.App, logger pubsub.Logger) *ConsumerManager {
 	return &ConsumerManager{
 		app:       app,
-		consumers: make(map[string]Consumer),
+		consumers: make(map[string]EventConsumer),
 		logger:    logger,
 	}
 }
 
-func (cm *ConsumerManager) AddConsumer(name string, consumer Consumer) {
+func (cm *ConsumerManager) AddConsumer(name string, consumer EventConsumer) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.consumers[name] = consumer
@@ -45,11 +45,11 @@ func (cm *ConsumerManager) ConsumeEvent(c *gofr.Context, event *cloudevents.Even
 	var errors []error
 	for name, consumer := range cm.consumers {
 		if consumer == nil {
-			cm.logger.Logf("Consumer %s is nil, skipping", name)
+			cm.logger.Logf("EventConsumer %s is nil, skipping", name)
 			continue
 		}
 		if err := consumer.ConsumeEvent(c, event); err != nil {
-			cm.logger.Errorf("Consumer %s failed: %v", name, err)
+			cm.logger.Errorf("EventConsumer %s failed: %v", name, err)
 			errors = append(errors, fmt.Errorf("consumer %s failed: %w", name, err))
 		}
 	}
