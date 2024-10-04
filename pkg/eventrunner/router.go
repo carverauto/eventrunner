@@ -19,53 +19,56 @@ import (
 )
 
 type EventRouter struct {
-	app *gofr.App
-	// natsClient  *nats.PubSubWrapper
-	natsClient  NATSClient
-	bufferPool  *sync.Pool
-	middlewares []Middleware
-	// consumerManager *ConsumerManager
+	app             AppInterface
+	natsClient      NATSClient
+	bufferPool      *sync.Pool
+	middlewares     []Middleware
 	consumerManager EventConsumer
 }
 
 type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
-func NewEventRouter() *EventRouter {
+func NewEventRouter(natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
 	app := gofr.New()
 
-	// Configure Cassandra
-	cassandraConfig := cassandraPkg.Config{
-		Hosts:    os.Getenv("CASSANDRA_HOSTS"),
-		Keyspace: os.Getenv("CASSANDRA_KEYSPACE"),
-		Port:     9042, // Default Cassandra port, adjust if necessary
-		Username: os.Getenv("CASSANDRA_USERNAME"),
-		Password: os.Getenv("CASSANDRA_PASSWORD"),
+	// Use provided cassandraClient or create a new one
+	if cassandraClient == nil {
+		// Configure Cassandra
+		cassandraConfig := cassandraPkg.Config{
+			Hosts:    os.Getenv("CASSANDRA_HOSTS"),
+			Keyspace: os.Getenv("CASSANDRA_KEYSPACE"),
+			Port:     9042,
+			Username: os.Getenv("CASSANDRA_USERNAME"),
+			Password: os.Getenv("CASSANDRA_PASSWORD"),
+		}
+		cassandraClient = cassandraPkg.New(cassandraConfig)
 	}
-	cassandra := cassandraPkg.New(cassandraConfig)
-	app.AddCassandra(cassandra)
+	app.AddCassandra(cassandraClient)
 
 	// Add migrations to run
 	app.Migrate(migrations.All())
 
-	subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
-
-	natsClient := nats.New(&nats.Config{
-		Server: os.Getenv("PUBSUB_BROKER"),
-		Stream: nats.StreamConfig{
-			Stream:   os.Getenv("NATS_STREAM"),
-			Subjects: subjects,
-		},
-		MaxWait:     5 * time.Second,
-		BatchSize:   100,
-		MaxPullWait: 10,
-		Consumer:    os.Getenv("NATS_CONSUMER"),
-		CredsFile:   os.Getenv("NATS_CREDS_FILE"),
-	})
-	natsClient.UseLogger(app.Logger)
-	natsClient.UseMetrics(app.Metrics())
-	natsClient.Connect()
-
+	// Use provided natsClient or create a new one
+	if natsClient == nil {
+		subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
+		realNatsClient := nats.New(&nats.Config{
+			Server: os.Getenv("PUBSUB_BROKER"),
+			Stream: nats.StreamConfig{
+				Stream:   os.Getenv("NATS_STREAM"),
+				Subjects: subjects,
+			},
+			MaxWait:     5 * time.Second,
+			BatchSize:   100,
+			MaxPullWait: 10,
+			Consumer:    os.Getenv("NATS_CONSUMER"),
+			CredsFile:   os.Getenv("NATS_CREDS_FILE"),
+		})
+		realNatsClient.UseLogger(app.Logger)
+		realNatsClient.UseMetrics(app.Metrics())
+		realNatsClient.Connect()
+		natsClient = realNatsClient
+	}
 	app.AddPubSub(natsClient)
 
 	consumerManager := NewConsumerManager(app, app.Logger())
