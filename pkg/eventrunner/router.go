@@ -3,7 +3,6 @@ package eventrunner
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -28,7 +27,7 @@ type EventRouter struct {
 }
 
 type Middleware func(HandlerFunc) HandlerFunc
-type HandlerFunc func(context.Context, *cloudevents.Event) error
+type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
 func NewEventRouter() *EventRouter {
 	app := gofr.New()
@@ -68,8 +67,9 @@ func NewEventRouter() *EventRouter {
 	app.AddPubSub(natsClient)
 
 	consumerManager := NewConsumerManager(app)
-	clickhouseSink := NewClickhouseEventSink(app)
-	consumerManager.AddConsumer("clickhouse", clickhouseSink)
+	cassandraSink := NewCassandraEventSink()
+
+	consumerManager.AddConsumer("clickhouse", cassandraSink)
 
 	return &EventRouter{
 		app:             app,
@@ -84,19 +84,36 @@ func (er *EventRouter) Use(middleware Middleware) {
 }
 
 func (er *EventRouter) Start() {
-	er.app.Subscribe("eventrunner.>", er.handleEvent)
+	er.app.Subscribe("events.products", er.handleEvent)
 	er.app.Run()
 }
 
 func (er *EventRouter) handleEvent(c *gofr.Context) error {
-	event := cloudevents.NewEvent()
-	if err := c.Bind(&event); err != nil {
-		return fmt.Errorf("failed to bind cloud event: %w", err)
+	// First, try to unmarshal as a CloudEvent
+	var event cloudevents.Event
+	err := c.Bind(&event)
+
+	if err != nil {
+		// If it's not a CloudEvent, treat it as a raw JSON message
+		var rawMessage map[string]interface{}
+		if err := c.Bind(&rawMessage); err != nil {
+			return fmt.Errorf("failed to parse message: %w", err)
+		}
+
+		// Convert the raw message to a CloudEvent
+		event = cloudevents.NewEvent()
+		event.SetID(uuid.New().String())
+		event.SetSource("eventrunner")
+		event.SetType("com.example.event") // You might want to determine this based on the topic
+		event.SetTime(time.Now())
+		if err := event.SetData(cloudevents.ApplicationJSON, rawMessage); err != nil {
+			return fmt.Errorf("failed to set event data: %w", err)
+		}
 	}
 
 	// Apply middlewares
 	handler := er.applyMiddleware(er.routeEvent)
-	return handler(c.Context, &event)
+	return handler(c, &event)
 }
 
 func (er *EventRouter) applyMiddleware(handler HandlerFunc) HandlerFunc {
@@ -106,9 +123,9 @@ func (er *EventRouter) applyMiddleware(handler HandlerFunc) HandlerFunc {
 	return handler
 }
 
-func (er *EventRouter) routeEvent(ctx context.Context, event *cloudevents.Event) error {
+func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) error {
 	// Log event using ConsumerManager
-	if err := er.consumerManager.ConsumeEvent(ctx, event); err != nil {
+	if err := er.consumerManager.ConsumeEvent(c, event); err != nil {
 		er.app.Logger().Errorf("Failed to consume event: %v", err)
 		// Continue processing even if logging fails
 	}
@@ -127,7 +144,7 @@ func (er *EventRouter) routeEvent(ctx context.Context, event *cloudevents.Event)
 	}
 
 	messageID := uuid.New().String()
-	if err := er.natsClient.Publish(ctx, consumerQueue, buf.Bytes()); err != nil {
+	if err := er.natsClient.Publish(c, consumerQueue, buf.Bytes()); err != nil {
 		return fmt.Errorf("failed to publish event: %w", err)
 	}
 

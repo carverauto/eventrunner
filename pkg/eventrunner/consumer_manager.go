@@ -2,7 +2,6 @@
 package eventrunner
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -29,17 +28,25 @@ func (cm *ConsumerManager) AddConsumer(name string, consumer Consumer) {
 	cm.consumers[name] = consumer
 }
 
-func (cm *ConsumerManager) ConsumeEvent(ctx context.Context, event *cloudevents.Event) error {
+func (cm *ConsumerManager) ConsumeEvent(c *gofr.Context, event *cloudevents.Event) error {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
-	gofrCtx := &gofr.Context{
-		Context: ctx,
+	if c == nil {
+		return fmt.Errorf("nil context provided to ConsumerManager")
+	}
+	if event == nil {
+		return fmt.Errorf("nil event provided to ConsumerManager")
 	}
 
 	var errors []error
 	for name, consumer := range cm.consumers {
-		if err := consumer.ConsumeEvent(gofrCtx, event); err != nil {
+		if consumer == nil {
+			cm.app.Logger().Warnf("Consumer %s is nil, skipping", name)
+			continue
+		}
+		if err := consumer.ConsumeEvent(c, event); err != nil {
+			cm.app.Logger().Errorf("Consumer %s failed: %v", name, err)
 			errors = append(errors, fmt.Errorf("consumer %s failed: %w", name, err))
 		}
 	}
