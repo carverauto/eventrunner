@@ -1,4 +1,4 @@
-// Package eventrunner pkg/eventrunner/eventrunner.go
+// Package eventrunner pkg/eventrunner/router.go
 package eventrunner
 
 import (
