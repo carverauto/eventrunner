@@ -104,7 +104,7 @@ linters:
     - errcheck
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - funlen
     - gochecknoglobals
     - gochecknoinits
