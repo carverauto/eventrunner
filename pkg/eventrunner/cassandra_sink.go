@@ -15,15 +15,32 @@ func NewCassandraEventSink() *CassandraEventSink {
 	return &CassandraEventSink{}
 }
 
-func (s *CassandraEventSink) ConsumeEvent(ctx *gofr.Context, event *cloudevents.Event) error {
+// CassandraInsertError is a custom error type for Cassandra insertion errors.
+type CassandraInsertError struct {
+	OriginalError error
+}
+
+// Error implements the error interface for CassandraInsertError.
+func (cie *CassandraInsertError) Error() string {
+	return fmt.Sprintf("failed to insert event into Cassandra: %v", cie.OriginalError)
+}
+
+// Unwrap allows errors.Is and errors.As to work with CassandraInsertError.
+func (cie *CassandraInsertError) Unwrap() error {
+	return cie.OriginalError
+}
+
+func (*CassandraEventSink) ConsumeEvent(ctx *gofr.Context, event *cloudevents.Event) error {
 	if ctx == nil {
-		return fmt.Errorf("nil context provided to CassandraEventSink")
+		return errNilContext
 	}
+
 	if event == nil {
-		return fmt.Errorf("nil event provided to CassandraEventSink")
+		return errNilEvent
 	}
+
 	if ctx.Cassandra == nil {
-		return fmt.Errorf("cassandra client is nil in CassandraEventSink")
+		return errNilCassandra
 	}
 
 	// Get the event data as []byte
@@ -56,7 +73,7 @@ func (s *CassandraEventSink) ConsumeEvent(ctx *gofr.Context, event *cloudevents.
 		event.SpecVersion(),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to insert event into Cassandra: %w", err)
+		return &CassandraInsertError{OriginalError: err}
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package eventrunner
 
 import (
-	"fmt"
 	"testing"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -60,7 +59,7 @@ func TestConsumerManager_ConsumeEvent(t *testing.T) {
 		cm.AddConsumer("test", consumer)
 
 		err := cm.ConsumeEvent(mockContext, &mockEvent)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		cm.consumers = make(map[string]EventConsumer) // Reset consumers
 	})
@@ -70,7 +69,7 @@ func TestConsumerManager_ConsumeEvent(t *testing.T) {
 		successConsumer.EXPECT().ConsumeEvent(mockContext, &mockEvent).Return(nil)
 
 		failConsumer := NewMockEventConsumer(ctrl)
-		failConsumer.EXPECT().ConsumeEvent(mockContext, &mockEvent).Return(fmt.Errorf("consumer failed"))
+		failConsumer.EXPECT().ConsumeEvent(mockContext, &mockEvent).Return(errConsumerFailed)
 
 		cm.AddConsumer("success", successConsumer)
 		cm.AddConsumer("fail", failConsumer)
@@ -86,20 +85,20 @@ func TestConsumerManager_ConsumeEvent(t *testing.T) {
 		cm.AddConsumer("nil", nil)
 
 		err := cm.ConsumeEvent(mockContext, &mockEvent)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		cm.consumers = make(map[string]EventConsumer) // Reset consumers
 	})
 
 	t.Run("Nil context", func(t *testing.T) {
 		err := cm.ConsumeEvent(nil, &mockEvent)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nil context provided")
 	})
 
 	t.Run("Nil event", func(t *testing.T) {
 		err := cm.ConsumeEvent(mockContext, nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "nil event provided")
 	})
 }

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -33,6 +35,7 @@ func (r *MockRequest) Param(key string) string {
 	if vals, ok := r.params[key]; ok && len(vals) > 0 {
 		return vals[0]
 	}
+
 	return ""
 }
 
@@ -44,6 +47,7 @@ func (r *MockRequest) PathParam(key string) string {
 	if vals, ok := r.params[key]; ok && len(vals) > 0 {
 		return vals[0]
 	}
+
 	return ""
 }
 
@@ -51,7 +55,7 @@ func (r *MockRequest) Bind(i interface{}) error {
 	return json.Unmarshal(r.body, i)
 }
 
-func (r *MockRequest) HostName() string {
+func (*MockRequest) HostName() string {
 	return "localhost"
 }
 
@@ -105,7 +109,6 @@ func TestEventRouter_handleEvent(t *testing.T) {
 		err := er.handleEvent(mockContext)
 		assert.NoError(t, err)
 	})
-
 }
 
 func TestEventRouter_routeEvent(t *testing.T) {
@@ -300,7 +303,7 @@ func TestEventRouter_handleEvent_BindError(t *testing.T) {
 	}
 
 	err := er.handleEvent(mockContext)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse message")
 }
 
@@ -311,7 +314,7 @@ func TestEventRouter_applyMiddleware_NoMiddlewares(t *testing.T) {
 
 	handlerCalled := false
 
-	handler := func(c *gofr.Context, e *cloudevents.Event) error {
+	handler := func(*gofr.Context, *cloudevents.Event) error {
 		handlerCalled = true
 		return nil
 	}
@@ -320,20 +323,22 @@ func TestEventRouter_applyMiddleware_NoMiddlewares(t *testing.T) {
 
 	// Call the handler
 	err := wrappedHandler(&gofr.Context{}, &cloudevents.Event{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, handlerCalled)
 }
 
 func TestEventRouter_applyMiddleware_WithMiddlewares(t *testing.T) {
 	er := &EventRouter{}
 
-	callSequence := []string{}
+	var callSequence []string
 
 	middleware1 := func(next HandlerFunc) HandlerFunc {
 		return func(c *gofr.Context, e *cloudevents.Event) error {
 			callSequence = append(callSequence, "middleware1 before")
 			err := next(c, e)
+
 			callSequence = append(callSequence, "middleware1 after")
+
 			return err
 		}
 	}
@@ -342,7 +347,9 @@ func TestEventRouter_applyMiddleware_WithMiddlewares(t *testing.T) {
 		return func(c *gofr.Context, e *cloudevents.Event) error {
 			callSequence = append(callSequence, "middleware2 before")
 			err := next(c, e)
+
 			callSequence = append(callSequence, "middleware2 after")
+
 			return err
 		}
 	}
@@ -350,7 +357,7 @@ func TestEventRouter_applyMiddleware_WithMiddlewares(t *testing.T) {
 	er.Use(middleware1)
 	er.Use(middleware2)
 
-	handler := func(c *gofr.Context, e *cloudevents.Event) error {
+	handler := func(*gofr.Context, *cloudevents.Event) error {
 		callSequence = append(callSequence, "handler")
 		return nil
 	}
@@ -359,7 +366,7 @@ func TestEventRouter_applyMiddleware_WithMiddlewares(t *testing.T) {
 
 	// Call the handler
 	err := wrappedHandler(&gofr.Context{}, &cloudevents.Event{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Assert the call sequence
 	expectedSequence := []string{
@@ -377,7 +384,7 @@ func TestEventRouter_routeEvent_ConsumeEventError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockConsumerManager := NewMockEventConsumer(ctrl)
-	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(fmt.Errorf("consume event error")).Times(1)
+	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(errConsumeEventError).Times(1)
 
 	mockApp := NewMockAppInterface(ctrl)
 	mockLogger := logging.NewMockLogger(logging.INFO)
@@ -416,8 +423,7 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	mockNatsClient := NewMockNATSClient(ctrl)
-	// mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("publish error")).Times(1)
+	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(errPublishError).Times(1)
 
 	er := &EventRouter{
 		app:             gofr.New(),
@@ -447,7 +453,7 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 	}
 
 	err := er.routeEvent(mockContext, &event)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to publish event")
 }
 
@@ -481,28 +487,29 @@ func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 	event.SetID(uuid.New().String())
 	event.SetType("test.event")
 	event.SetSource("test")
-	event.SetData(cloudevents.ApplicationJSON, map[string]string{"key": "value"})
+	err := event.SetData(cloudevents.ApplicationJSON, map[string]string{"key": "value"})
+	require.NoError(t, err)
 
 	mockContext := &gofr.Context{
 		Context: context.Background(),
 	}
 
-	err := er.routeEvent(mockContext, &event)
-	assert.Error(t, err, "Expected an error but got none")
+	err = er.routeEvent(mockContext, &event)
+	require.Error(t, err, "Expected an error but got none")
 	t.Logf("Actual error: %v", err)
 	assert.Contains(t, err.Error(), "failed to encode event", "Error message does not contain the expected substring")
 }
 
-// failingBuffer is a custom buffer that always fails on Write
+// failingBuffer is a custom buffer that always fails on Write.
 type failingBuffer struct{}
 
-func (fb *failingBuffer) Write(p []byte) (n int, err error) {
+func (*failingBuffer) Write([]byte) (n int, err error) {
 	fmt.Println("Forced write error")
-	return 0, fmt.Errorf("forced write error")
+	return 0, errBufferForcedWriteError
 }
 
-func (fb *failingBuffer) Bytes() []byte {
+func (*failingBuffer) Bytes() []byte {
 	return []byte{}
 }
 
-func (fb *failingBuffer) Reset() {}
+func (*failingBuffer) Reset() {}

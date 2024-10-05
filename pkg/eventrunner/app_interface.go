@@ -8,7 +8,7 @@ import (
 	"gofr.dev/pkg/gofr/migration"
 )
 
-// AppWrapper wraps a *gofr.App and implements AppInterface
+// AppWrapper wraps a *gofr.App and implements AppInterface.
 type AppWrapper struct {
 	app *gofr.App
 }

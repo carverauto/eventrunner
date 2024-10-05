@@ -10,7 +10,7 @@ type LogEventSink struct {
 	// Add any necessary fields (e.g., database connection)
 }
 
-func (s *LogEventSink) LogEvent(ctx context.Context, event *cloudevents.Event) error {
+func (*LogEventSink) LogEvent(context.Context, *cloudevents.Event) error {
 	// Implement event logging logic here
 	return nil
 }

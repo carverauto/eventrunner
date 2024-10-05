@@ -44,6 +44,7 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 		}
 		cassandraClient = cassandraPkg.New(cassandraConfig)
 	}
+
 	app.AddCassandra(cassandraClient)
 
 	// Add migrations to run
@@ -68,6 +69,7 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 		realNatsClient.Connect()
 		natsClient = realNatsClient
 	}
+
 	app.AddPubSub(natsClient)
 
 	consumerManager := NewConsumerManager(app, app.Logger())
@@ -83,6 +85,7 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 		logger:          app.Logger(),
 	}
 	er.getBufferFunc = er.defaultGetBuffer
+
 	return er
 }
 
@@ -117,6 +120,7 @@ func (er *EventRouter) handleEvent(c *gofr.Context) error {
 		event.SetSource("eventrunner")
 		event.SetType("com.example.event")
 		event.SetTime(time.Now())
+
 		if err := event.SetData(cloudevents.ApplicationJSON, rawMessage); err != nil {
 			return fmt.Errorf("failed to set event data: %w", err)
 		}
@@ -124,6 +128,7 @@ func (er *EventRouter) handleEvent(c *gofr.Context) error {
 
 	// Apply middlewares
 	handler := er.applyMiddleware(er.routeEvent)
+
 	return handler(c, &event)
 }
 
@@ -131,6 +136,7 @@ func (er *EventRouter) applyMiddleware(handler HandlerFunc) HandlerFunc {
 	for i := len(er.middlewares) - 1; i >= 0; i-- {
 		handler = er.middlewares[i](handler)
 	}
+
 	return handler
 }
 
@@ -138,7 +144,6 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 	// Log event using ConsumerManager
 	if err := er.consumerManager.ConsumeEvent(c, event); err != nil {
 		er.logger.Errorf("Failed to consume event: %v", err)
-		// Continue processing even if logging fails
 	}
 
 	eventType := event.Type()
@@ -155,6 +160,7 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 	}
 
 	messageID := uuid.New().String()
+
 	if err := er.natsClient.Publish(c, consumerQueue, buf.Bytes()); err != nil {
 		return fmt.Errorf("failed to publish event: %w", err)
 	}
