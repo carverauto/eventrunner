@@ -1,5 +1,7 @@
 # eventrunner
 
+[![golangci-lint](https://github.com/carverauto/eventrunner/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/carverauto/eventrunner/actions/workflows/golangci-lint.yml)
+
 ## High-Throughput Event Processing Engine
 
 This project implements a high-speed, high-throughput event processing engine backed by Cassandra (Scylla) 
