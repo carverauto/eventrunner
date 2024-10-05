@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eventrunner-account
+  namespace: threadr
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eventrunner
+  namespace: threadr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eventrunner
+  template:
+    metadata:
+      labels:
+        app: eventrunner
+    spec:
+      serviceAccountName: eventrunner-account
+      imagePullSecrets:
+        - name: ghcr-io-cred
+      containers:
+        - name: threadr
+          image: ghcr.io/carverauto/eventrunner:v0.0.01
+          imagePullPolicy: Always
+          env:
+            - name: NATS_URL
+              value: nats://connect.ngs.global:4222
+            - name: SUBJECTS
+              value: "events.products,events.order-log"
+            - name: APP_ENV
+              value: "staging"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4317"
+            - name: NATS_CREDS_FILE
+              value: "/app/conf/nats.creds"
+          volumeMounts:
+            - name: nats-creds
+              mountPath: /app/conf/nats.creds
+              subPath: nats.creds
