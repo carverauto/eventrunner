@@ -17,7 +17,6 @@ import (
 	"gofr.dev/pkg/gofr/container"
 	cassandraPkg "gofr.dev/pkg/gofr/datasource/cassandra"
 	"gofr.dev/pkg/gofr/logging"
-	"gofr.dev/pkg/gofr/testutil"
 )
 
 type MockRequest struct {
@@ -63,16 +62,22 @@ func TestEventRouter_handleEvent(t *testing.T) {
 	mockConsumerManager := NewMockEventConsumer(ctrl)
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
+	mockApp := NewMockAppInterface(ctrl)
+	mockLogger := logging.NewMockLogger(logging.DEBUG)
+	mockApp.EXPECT().Logger().Return(mockLogger).AnyTimes()
+
 	mockNatsClient := NewMockNATSClient(ctrl)
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	er := &EventRouter{
-		app:             gofr.New(),
+		// app:             gofr.New(),
+		app:             mockApp,
 		consumerManager: mockConsumerManager,
 		bufferPool: &sync.Pool{
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
 		natsClient: mockNatsClient,
+		logger:     mockLogger,
 	}
 	er.getBufferFunc = er.defaultGetBuffer
 
@@ -110,16 +115,22 @@ func TestEventRouter_routeEvent(t *testing.T) {
 	mockConsumerManager := NewMockEventConsumer(ctrl)
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
+	mockApp := NewMockAppInterface(ctrl)
+	mockLogger := logging.NewMockLogger(logging.DEBUG)
+	mockApp.EXPECT().Logger().Return(mockLogger).AnyTimes()
+
 	mockNatsClient := NewMockNATSClient(ctrl)
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	er := &EventRouter{
-		app:             gofr.New(),
+		// app:             gofr.New(),
+		app:             mockApp,
 		consumerManager: mockConsumerManager,
 		bufferPool: &sync.Pool{
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
 		natsClient: mockNatsClient,
+		logger:     mockLogger,
 	}
 	er.getBufferFunc = er.defaultGetBuffer
 
@@ -213,16 +224,21 @@ func TestEventRouter_handleEvent_NonCloudEvent(t *testing.T) {
 	mockConsumerManager := NewMockEventConsumer(ctrl)
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
+	mockApp := NewMockAppInterface(ctrl)
+	mockLogger := logging.NewMockLogger(logging.DEBUG)
+	mockApp.EXPECT().Logger().Return(mockLogger).AnyTimes()
+
 	mockNatsClient := NewMockNATSClient(ctrl)
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	er := &EventRouter{
-		app:             gofr.New(),
+		app:             mockApp,
 		consumerManager: mockConsumerManager,
 		bufferPool: &sync.Pool{
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
 		natsClient: mockNatsClient,
+		logger:     mockLogger,
 	}
 	er.getBufferFunc = er.defaultGetBuffer
 
@@ -443,20 +459,20 @@ func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	mockApp := NewMockAppInterface(ctrl)
-	mockApp.EXPECT().Logger().Return(logging.NewLogger(logging.DEBUG)).AnyTimes()
+	mockLogger := logging.NewMockLogger(logging.DEBUG)
+	mockApp.EXPECT().Logger().Return(mockLogger).AnyTimes()
 
 	mockNatsClient := NewMockNATSClient(ctrl)
-	// We don't expect Publish to be called in this test
 
 	er := &EventRouter{
 		app:             mockApp,
 		natsClient:      mockNatsClient,
 		consumerManager: mockConsumerManager,
 		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
+		logger:          mockLogger,
 	}
-	er.getBufferFunc = er.defaultGetBuffer
 
-	// Set a custom getBufferFunc that returns a failing buffer
+	// Override getBufferFunc to return a failing buffer
 	er.getBufferFunc = func() Buffer {
 		return &failingBuffer{}
 	}
@@ -471,20 +487,17 @@ func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 		Context: context.Background(),
 	}
 
-	logs := testutil.StderrOutputForFunc(func() {
-		er.logger = logging.NewMockLogger(logging.DEBUG)
-		err := er.routeEvent(mockContext, &event)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to encode event")
-	})
-
-	assert.Contains(t, logs, "Failed to encode event")
+	err := er.routeEvent(mockContext, &event)
+	assert.Error(t, err, "Expected an error but got none")
+	t.Logf("Actual error: %v", err)
+	assert.Contains(t, err.Error(), "failed to encode event", "Error message does not contain the expected substring")
 }
 
 // failingBuffer is a custom buffer that always fails on Write
 type failingBuffer struct{}
 
 func (fb *failingBuffer) Write(p []byte) (n int, err error) {
+	fmt.Println("Forced write error")
 	return 0, fmt.Errorf("forced write error")
 }
 

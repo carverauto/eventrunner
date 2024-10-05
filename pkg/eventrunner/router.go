@@ -73,7 +73,7 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 	consumerManager := NewConsumerManager(app, app.Logger())
 	cassandraSink := NewCassandraEventSink()
 
-	consumerManager.AddConsumer("clickhouse", cassandraSink)
+	consumerManager.AddConsumer("cassandra", cassandraSink)
 
 	er := &EventRouter{
 		app:             app,
@@ -115,7 +115,7 @@ func (er *EventRouter) handleEvent(c *gofr.Context) error {
 		event = cloudevents.NewEvent()
 		event.SetID(uuid.New().String())
 		event.SetSource("eventrunner")
-		event.SetType("com.example.event") // You might want to determine this based on the topic
+		event.SetType("com.example.event")
 		event.SetTime(time.Now())
 		if err := event.SetData(cloudevents.ApplicationJSON, rawMessage); err != nil {
 			return fmt.Errorf("failed to set event data: %w", err)
