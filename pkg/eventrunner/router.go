@@ -1,4 +1,4 @@
-// Package eventrunner pkg/eventrunner/eventrunner.go
+// Package eventrunner pkg/eventrunner/router.go
 package eventrunner
 
 import (
@@ -16,67 +16,78 @@ import (
 	"github.com/google/uuid"
 	"gofr.dev/pkg/gofr"
 	cassandraPkg "gofr.dev/pkg/gofr/datasource/cassandra"
+	"gofr.dev/pkg/gofr/logging"
 )
 
 type EventRouter struct {
-	app             *gofr.App
-	natsClient      *nats.PubSubWrapper
+	app             AppInterface
+	natsClient      NATSClient
 	bufferPool      *sync.Pool
 	middlewares     []Middleware
-	consumerManager *ConsumerManager
+	consumerManager EventConsumer
+	getBufferFunc   func() Buffer
+	logger          logging.Logger
 }
 
 type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
-func NewEventRouter() *EventRouter {
-	app := gofr.New()
-
-	// Configure Cassandra
-	cassandraConfig := cassandraPkg.Config{
-		Hosts:    os.Getenv("CASSANDRA_HOSTS"),
-		Keyspace: os.Getenv("CASSANDRA_KEYSPACE"),
-		Port:     9042, // Default Cassandra port, adjust if necessary
-		Username: os.Getenv("CASSANDRA_USERNAME"),
-		Password: os.Getenv("CASSANDRA_PASSWORD"),
+func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
+	if cassandraClient == nil {
+		// Configure Cassandra
+		cassandraConfig := cassandraPkg.Config{
+			Hosts:    os.Getenv("CASSANDRA_HOSTS"),
+			Keyspace: os.Getenv("CASSANDRA_KEYSPACE"),
+			Port:     9042,
+			Username: os.Getenv("CASSANDRA_USERNAME"),
+			Password: os.Getenv("CASSANDRA_PASSWORD"),
+		}
+		cassandraClient = cassandraPkg.New(cassandraConfig)
 	}
-	cassandra := cassandraPkg.New(cassandraConfig)
-	app.AddCassandra(cassandra)
+	app.AddCassandra(cassandraClient)
 
 	// Add migrations to run
 	app.Migrate(migrations.All())
 
-	subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
-
-	natsClient := nats.New(&nats.Config{
-		Server: os.Getenv("PUBSUB_BROKER"),
-		Stream: nats.StreamConfig{
-			Stream:   os.Getenv("NATS_STREAM"),
-			Subjects: subjects,
-		},
-		MaxWait:     5 * time.Second,
-		BatchSize:   100,
-		MaxPullWait: 10,
-		Consumer:    os.Getenv("NATS_CONSUMER"),
-		CredsFile:   os.Getenv("NATS_CREDS_FILE"),
-	})
-	natsClient.UseLogger(app.Logger)
-	natsClient.UseMetrics(app.Metrics())
-	natsClient.Connect()
-
+	if natsClient == nil {
+		subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
+		realNatsClient := nats.New(&nats.Config{
+			Server: os.Getenv("PUBSUB_BROKER"),
+			Stream: nats.StreamConfig{
+				Stream:   os.Getenv("NATS_STREAM"),
+				Subjects: subjects,
+			},
+			MaxWait:     5 * time.Second,
+			BatchSize:   100,
+			MaxPullWait: 10,
+			Consumer:    os.Getenv("NATS_CONSUMER"),
+			CredsFile:   os.Getenv("NATS_CREDS_FILE"),
+		})
+		realNatsClient.UseLogger(app.Logger())
+		realNatsClient.UseMetrics(app.Metrics())
+		realNatsClient.Connect()
+		natsClient = realNatsClient
+	}
 	app.AddPubSub(natsClient)
 
-	consumerManager := NewConsumerManager(app)
+	consumerManager := NewConsumerManager(app, app.Logger())
 	cassandraSink := NewCassandraEventSink()
 
-	consumerManager.AddConsumer("clickhouse", cassandraSink)
+	consumerManager.AddConsumer("cassandra", cassandraSink)
 
-	return &EventRouter{
+	er := &EventRouter{
 		app:             app,
 		natsClient:      natsClient,
 		bufferPool:      &sync.Pool{New: func() interface{} { return new(bytes.Buffer) }},
 		consumerManager: consumerManager,
+		logger:          app.Logger(),
 	}
+	er.getBufferFunc = er.defaultGetBuffer
+	return er
+}
+
+func (er *EventRouter) defaultGetBuffer() Buffer {
+	return er.bufferPool.Get().(*bytes.Buffer)
 }
 
 func (er *EventRouter) Use(middleware Middleware) {
@@ -104,7 +115,7 @@ func (er *EventRouter) handleEvent(c *gofr.Context) error {
 		event = cloudevents.NewEvent()
 		event.SetID(uuid.New().String())
 		event.SetSource("eventrunner")
-		event.SetType("com.example.event") // You might want to determine this based on the topic
+		event.SetType("com.example.event")
 		event.SetTime(time.Now())
 		if err := event.SetData(cloudevents.ApplicationJSON, rawMessage); err != nil {
 			return fmt.Errorf("failed to set event data: %w", err)
@@ -126,7 +137,7 @@ func (er *EventRouter) applyMiddleware(handler HandlerFunc) HandlerFunc {
 func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) error {
 	// Log event using ConsumerManager
 	if err := er.consumerManager.ConsumeEvent(c, event); err != nil {
-		er.app.Logger().Errorf("Failed to consume event: %v", err)
+		er.logger.Errorf("Failed to consume event: %v", err)
 		// Continue processing even if logging fails
 	}
 
@@ -136,7 +147,7 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 	// Route to appropriate consumer queue based on event type
 	consumerQueue := fmt.Sprintf("events.%s", eventType)
 
-	buf := er.getBuffer()
+	buf := er.getBufferFunc()
 	defer er.putBuffer(buf)
 
 	if err := json.NewEncoder(buf).Encode(event); err != nil {
@@ -148,7 +159,7 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 		return fmt.Errorf("failed to publish event: %w", err)
 	}
 
-	er.app.Logger().Logf("published event %s to %s for tenant %s", messageID, consumerQueue, tenantID)
+	er.logger.Logf("published event %s to %s for tenant %s", messageID, consumerQueue, tenantID)
 
 	return nil
 }

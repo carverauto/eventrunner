@@ -7,22 +7,25 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"gofr.dev/pkg/gofr"
+	"gofr.dev/pkg/gofr/datasource/pubsub"
 )
 
 type ConsumerManager struct {
-	app       *gofr.App
-	consumers map[string]Consumer
+	app       AppInterface
+	consumers map[string]EventConsumer
 	mu        sync.RWMutex
+	logger    pubsub.Logger
 }
 
-func NewConsumerManager(app *gofr.App) *ConsumerManager {
+func NewConsumerManager(app AppInterface, logger pubsub.Logger) *ConsumerManager {
 	return &ConsumerManager{
 		app:       app,
-		consumers: make(map[string]Consumer),
+		consumers: make(map[string]EventConsumer),
+		logger:    logger,
 	}
 }
 
-func (cm *ConsumerManager) AddConsumer(name string, consumer Consumer) {
+func (cm *ConsumerManager) AddConsumer(name string, consumer EventConsumer) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.consumers[name] = consumer
@@ -42,11 +45,11 @@ func (cm *ConsumerManager) ConsumeEvent(c *gofr.Context, event *cloudevents.Even
 	var errors []error
 	for name, consumer := range cm.consumers {
 		if consumer == nil {
-			cm.app.Logger().Warnf("Consumer %s is nil, skipping", name)
+			cm.logger.Logf("EventConsumer %s is nil, skipping", name)
 			continue
 		}
 		if err := consumer.ConsumeEvent(c, event); err != nil {
-			cm.app.Logger().Errorf("Consumer %s failed: %v", name, err)
+			cm.logger.Errorf("EventConsumer %s failed: %v", name, err)
 			errors = append(errors, fmt.Errorf("consumer %s failed: %w", name, err))
 		}
 	}
