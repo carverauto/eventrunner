@@ -1,99 +1,81 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"strings"
-	"time"
+	"context"
+	"log"
 
-	"github.com/carverauto/gofr-nats"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/google/uuid"
+	"github.com/carverauto/eventrunner/pkg/api/middleware"
+	"github.com/carverauto/eventrunner/pkg/config"
+	customctx "github.com/carverauto/eventrunner/pkg/context"
+	"github.com/carverauto/eventrunner/pkg/eventingest"
 	"gofr.dev/pkg/gofr"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-type EventRouter struct {
-	app        *gofr.App
-	natsClient *nats.PubSubWrapper
-}
-
-func NewEventRouter() *EventRouter {
+func main() {
 	app := gofr.New()
 
-	subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
+	// Load OAuth configuration
+	oauthConfig := config.LoadOAuthConfig(app)
 
-	natsClient := nats.New(&nats.Config{
-		Server: os.Getenv("PUBSUB_BROKER"),
-		Stream: nats.StreamConfig{
-			Stream:   os.Getenv("NATS_STREAM"),
-			Subjects: subjects,
+	// Initialize JWT middleware
+	jwtMiddleware, err := middleware.NewJWTMiddleware(context.Background(), oauthConfig)
+	if err != nil {
+		log.Fatalf("Failed to initialize JWT middleware: %v", err)
+	}
+
+	// Set up gRPC connection to API
+	grpcServerAddress := app.Config.Get("GRPC_SERVER_ADDRESS")
+
+	conn, err := grpc.Dial(grpcServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to gRPC server: %v", err)
+	}
+
+	defer conn.Close()
+
+	// Create gRPC event forwarder
+	eventForwarder := eventingest.NewGRPCEventForwarder(conn)
+
+	// Create and set up HTTP server
+	httpServer := eventingest.NewHTTPServer(app, eventForwarder)
+
+	// Register routes with middleware chain
+	app.POST("/events", combineMiddleware(
+		jwtMiddleware.Validate,
+		middleware.AuthenticateAPIKey,
+		middleware.RequireRole("admin", "event_publisher"),
+		func(cc *customctx.Context) (interface{}, error) {
+			return httpServer.HandleEvent(cc)
 		},
-		MaxWait:     5 * time.Second,
-		BatchSize:   100,
-		MaxPullWait: 10,
-		Consumer:    os.Getenv("NATS_CONSUMER"),
-		CredsFile:   os.Getenv("NATS_CREDS_FILE"),
-	})
-	natsClient.UseLogger(app.Logger)
-	natsClient.UseMetrics(app.Metrics())
-	natsClient.Connect()
+	))
 
-	app.AddPubSub(natsClient)
-
-	return &EventRouter{
-		app:        app,
-		natsClient: natsClient,
-	}
+	// Run the application
+	app.Run()
 }
 
-func (er *EventRouter) Start() {
-	er.app.Subscribe("raw_events", er.handleRawEvent)
-	er.app.Run()
-}
+// combineMiddleware chains multiple middleware functions together
+func combineMiddleware(middlewares ...interface{}) gofr.Handler {
+	return func(c *gofr.Context) (interface{}, error) {
+		cc := customctx.NewCustomContext(c)
 
-func (er *EventRouter) handleRawEvent(c *gofr.Context) error {
-	var rawEvent map[string]interface{}
-	if err := c.Bind(&rawEvent); err != nil {
-		return err
+		var handler func(*customctx.Context) (interface{}, error)
+
+		// Apply middlewares in reverse order
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			switch m := middlewares[i].(type) {
+			case func(*customctx.Context) (interface{}, error):
+				handler = m
+			case func(func(*customctx.Context) (interface{}, error)) func(*customctx.Context) (interface{}, error):
+				handler = m(handler)
+			case func(gofr.Handler) gofr.Handler:
+				return m(func(*gofr.Context) (interface{}, error) {
+					return handler(cc)
+				})(c)
+			}
+		}
+
+		return handler(cc)
 	}
-
-	event := cloudevents.NewEvent()
-	event.SetID(uuid.New().String())
-	event.SetSource("event-router")
-
-	eventType, ok := rawEvent["type"].(string)
-	if !ok {
-		return fmt.Errorf("missing or invalid event type")
-	}
-	event.SetType(eventType)
-
-	tenantID, ok := rawEvent["tenant_id"].(string)
-	if !ok {
-		return fmt.Errorf("missing or invalid tenant_id")
-	}
-	event.SetExtension("tenantid", tenantID)
-
-	err := event.SetData(cloudevents.ApplicationJSON, rawEvent)
-	if err != nil {
-		return err
-	}
-
-	eventJSON, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-
-	// Route to appropriate consumer queue based on event type
-	consumerQueue := "events." + eventType
-	if err := er.natsClient.Publish(c.Context, consumerQueue, eventJSON); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func main() {
-	router := NewEventRouter()
-	router.Start()
 }

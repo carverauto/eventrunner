@@ -1,26 +1,19 @@
-name: golangci-lint
-on:
-  push:
-    branches:
-      - main
-      - master
-  pull_request:
-
-permissions:
-  contents: read
-  # Optional: allow read access to pull request. Use with `only-new-issues` option.
-  # pull-requests: read
-
+name: lint
+on: [push]
 jobs:
-  golangci:
+  lint:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: setup go
+        uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.60
+          version: v1.60.3
+      - name: go mod tidy check
+        uses: katexochen/go-tidy-check@v2
