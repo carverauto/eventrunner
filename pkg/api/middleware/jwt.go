@@ -2,33 +2,33 @@ package middleware
 
 import (
 	"context"
-	"strings"
-
 	"github.com/carverauto/eventrunner/pkg/config"
 	customctx "github.com/carverauto/eventrunner/pkg/context"
 	"github.com/carverauto/eventrunner/pkg/eventingest"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"gofr.dev/pkg/gofr"
+	"strings"
 )
 
 // JWTMiddleware is a middleware that validates JWT tokens.
 type JWTMiddleware struct {
-	verifier *oidc.IDTokenVerifier
+	verifier IDTokenVerifier
 	config   *config.OAuthConfig
 }
 
 // NewJWTMiddleware creates a new JWTMiddleware.
-func NewJWTMiddleware(ctx context.Context, config *config.OAuthConfig) (*JWTMiddleware, error) {
-	provider, err := oidc.NewProvider(ctx, config.KeycloakURL)
+func NewJWTMiddleware(ctx context.Context, cfg *config.OAuthConfig) (*JWTMiddleware, error) {
+	provider, err := oidc.NewProvider(ctx, cfg.KeycloakURL)
 	if err != nil {
 		return nil, eventingest.NewInternalError("Failed to get provider")
 	}
 
-	verifier := provider.Verifier(&oidc.Config{ClientID: config.ClientID})
+	oidcVerifier := provider.Verifier(&oidc.Config{ClientID: cfg.ClientID})
+	verifier := NewOIDCVerifier(oidcVerifier)
 
 	return &JWTMiddleware{
 		verifier: verifier,
-		config:   config,
+		config:   cfg,
 	}, nil
 }
 
@@ -37,14 +37,16 @@ func (m *JWTMiddleware) Validate(next func(customctx.Context) (interface{}, erro
 	return func(c *gofr.Context) (interface{}, error) {
 		cc := customctx.NewCustomContext(c)
 
-		authHeader := c.Request.Context().Value("Authorization").(string)
-		if authHeader == "" {
-			return nil, eventingest.NewAuthError("Missing authorization header")
+		// Safely retrieve Authorization header from context
+		authHeaderValue := c.Request.Context().Value("Authorization")
+		authHeader, ok := authHeaderValue.(string)
+		if !ok || authHeader == "" {
+			return nil, eventingest.NewAuthError("Missing or invalid authorization header")
 		}
 
 		bearerToken := strings.TrimPrefix(authHeader, "Bearer ")
 		if bearerToken == authHeader {
-			return nil, eventingest.NewAuthError("Invalid authorization header")
+			return nil, eventingest.NewAuthError("Invalid authorization header format")
 		}
 
 		token, err := m.verifier.Verify(context.Background(), bearerToken)
