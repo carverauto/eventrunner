@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
@@ -24,6 +25,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize JWT middleware: %v", err)
 	}
+
+	app.UseMiddleware(middleware.CustomHeadersMiddleware())
 
 	// Set up gRPC connection to API
 	grpcServerAddress := app.Config.Get("GRPC_SERVER_ADDRESS")
@@ -57,8 +60,11 @@ func main() {
 // combineMiddleware chains multiple middleware functions together
 func combineMiddleware(middlewares ...interface{}) gofr.Handler {
 	return func(c *gofr.Context) (interface{}, error) {
-		// Create the initial custom context from the GoFr context
-		cc := customctx.NewCustomContext(c)
+		// Retrieve the custom context from the original context
+		customCtx, ok := c.Request.Context().Value("customCtx").(*customctx.CustomContext)
+		if !ok {
+			return nil, errors.New("failed to retrieve custom context")
+		}
 
 		// Define the final handler that will be called after applying all middleware
 		finalHandler := func(ctx customctx.Context) (interface{}, error) {
@@ -74,7 +80,6 @@ func combineMiddleware(middlewares ...interface{}) gofr.Handler {
 					finalHandler = m
 				} else {
 					// Wrap the final handler in the current function
-					// nextHandler := finalHandler
 					finalHandler = func(ctx customctx.Context) (interface{}, error) {
 						return m(ctx)
 					}
@@ -86,6 +91,6 @@ func combineMiddleware(middlewares ...interface{}) gofr.Handler {
 		}
 
 		// Execute the final middleware chain with the custom context
-		return finalHandler(cc)
+		return finalHandler(customCtx)
 	}
 }

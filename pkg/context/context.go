@@ -3,11 +3,13 @@ package context
 import (
 	"github.com/google/uuid"
 	"gofr.dev/pkg/gofr"
+	"net/http"
 )
 
 type CustomContext struct {
 	gofrContext *gofr.Context
 	claims      map[string]interface{}
+	headers     http.Header
 }
 
 // NewCustomContext creates a new Context.
@@ -15,6 +17,7 @@ func NewCustomContext(c *gofr.Context) *CustomContext {
 	return &CustomContext{
 		gofrContext: c,
 		claims:      make(map[string]interface{}),
+		headers:     http.Header{},
 	}
 }
 
@@ -71,4 +74,19 @@ func (c *CustomContext) Bind(v interface{}) error {
 // Context returns the underlying gofr.Context.
 func (c *CustomContext) Context() *gofr.Context {
 	return c.gofrContext
+}
+
+// SetHeader sets an HTTP header.
+func (c *CustomContext) SetHeader(key, value string) {
+	c.headers.Set(key, value)
+}
+
+// GetHeader retrieves an HTTP header value.
+func (c *CustomContext) GetHeader(key string) string {
+	return c.headers.Get(key)
+}
+
+// Headers returns all HTTP headers.
+func (c *CustomContext) Headers() http.Header {
+	return c.headers
 }
