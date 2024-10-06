@@ -2,25 +2,25 @@ package handlers
 
 import (
 	"github.com/carverauto/eventrunner/pkg/api/models"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"gofr.dev/pkg/gofr"
 )
 
 type TenantHandler struct{}
 
-func (*TenantHandler) Create(c *gofr.Context) (interface{}, error) {
+func (*TenantHandler) Create(c *gofr.Context) (models.Tenant, error) {
 	var tenant models.Tenant
 	if err := c.Bind(&tenant); err != nil {
-		return nil, err
+		return models.Tenant{}, err
 	}
 
 	result, err := c.Mongo.InsertOne(c, "tenants", tenant)
 	if err != nil {
-		return nil, err
+		return models.Tenant{}, err
 	}
 
-	tenant.ID = result.(primitive.ObjectID)
+	tenant.ID = result.(uuid.UUID)
 
 	return tenant, nil
 }
@@ -47,13 +47,13 @@ func (*UserHandler) Create(c *gofr.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	user.ID = result.(primitive.ObjectID)
+	user.ID = result.(uuid.UUID)
 
 	return user, nil
 }
 
 func (*UserHandler) GetAll(c *gofr.Context) (interface{}, error) {
-	tenantID, err := primitive.ObjectIDFromHex(c.Param("tenant_id"))
+	tenantID, err := uuid.Parse(c.Param("tenant_id"))
 	if err != nil {
 		return nil, err
 	}
