@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 
@@ -93,10 +94,10 @@ func TestTenantHandler_Create(t *testing.T) {
 			result, err := handler.Create(ctx)
 
 			if tt.expectedError != nil {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Equal(t, tt.expectedError, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectedResult.Name, result.Name)
 				assert.NotEqual(t, uuid.Nil, result.ID) // Ensures a valid UUID is assigned
 			}
