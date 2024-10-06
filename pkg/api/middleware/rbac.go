@@ -6,7 +6,6 @@ import (
 )
 
 // AuthenticateAPIKey checks if the API key is valid and active, otherwise returns an error.
-// AuthenticateAPIKey checks if the API key is valid and active, otherwise returns an error.
 func AuthenticateAPIKey(next func(customctx.Context) (interface{}, error)) func(customctx.Context) (interface{}, error) {
 	return func(cc customctx.Context) (interface{}, error) {
 		apiKey, ok := cc.GetAPIKey()
@@ -14,16 +13,11 @@ func AuthenticateAPIKey(next func(customctx.Context) (interface{}, error)) func(
 			return nil, eventingest.NewAuthError("Missing API Key")
 		}
 
-		/*
-			tenantID, customerID, err := cc.GetAPIKey(apiKey)
-			if err != nil {
-				return nil, eventingest.NewAuthError("Invalid API Key")
-			}
-		*/
 		tenantID, ok := cc.GetUUIDClaim("tenant_id")
 		if !ok {
 			return nil, eventingest.NewAuthError("Missing tenant ID")
 		}
+
 		customerID, ok := cc.GetUUIDClaim("customer_id")
 		if !ok {
 			return nil, eventingest.NewAuthError("Missing customer ID")
