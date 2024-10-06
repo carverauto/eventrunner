@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/carverauto/eventrunner/cmd/api/migrations"
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
-	"github.com/carverauto/eventrunner/pkg/api/middleware"
+	middlewarePkg "github.com/carverauto/eventrunner/pkg/api/middleware"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/datasource/mongo"
 )
