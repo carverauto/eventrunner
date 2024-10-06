@@ -1,3 +1,5 @@
+//go:build !migrations
+
 package migrations
 
 import "gofr.dev/pkg/gofr/migration"

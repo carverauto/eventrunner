@@ -32,7 +32,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to gRPC server: %v", err)
 	}
-
 	defer conn.Close()
 
 	// Create gRPC event forwarder
@@ -46,7 +45,7 @@ func main() {
 		jwtMiddleware.Validate,
 		middleware.AuthenticateAPIKey,
 		middleware.RequireRole("admin", "event_publisher"),
-		func(cc *customctx.Context) (interface{}, error) {
+		func(cc customctx.Context) (interface{}, error) {
 			return httpServer.HandleEvent(cc)
 		},
 	))
@@ -58,24 +57,35 @@ func main() {
 // combineMiddleware chains multiple middleware functions together
 func combineMiddleware(middlewares ...interface{}) gofr.Handler {
 	return func(c *gofr.Context) (interface{}, error) {
+		// Create the initial custom context from the GoFr context
 		cc := customctx.NewCustomContext(c)
 
-		var handler func(*customctx.Context) (interface{}, error)
+		// Define the final handler that will be called after applying all middleware
+		finalHandler := func(ctx customctx.Context) (interface{}, error) {
+			return nil, eventingest.NewInternalError("No handler provided")
+		}
 
-		// Apply middlewares in reverse order
+		// Apply middlewares in reverse order to build the middleware chain
 		for i := len(middlewares) - 1; i >= 0; i-- {
 			switch m := middlewares[i].(type) {
-			case func(*customctx.Context) (interface{}, error):
-				handler = m
-			case func(func(*customctx.Context) (interface{}, error)) func(*customctx.Context) (interface{}, error):
-				handler = m(handler)
-			case func(gofr.Handler) gofr.Handler:
-				return m(func(*gofr.Context) (interface{}, error) {
-					return handler(cc)
-				})(c)
+			case func(customctx.Context) (interface{}, error):
+				// Set the final handler to the current one if no other handler is set
+				if i == len(middlewares)-1 {
+					finalHandler = m
+				} else {
+					// Wrap the final handler in the current function
+					// nextHandler := finalHandler
+					finalHandler = func(ctx customctx.Context) (interface{}, error) {
+						return m(ctx)
+					}
+				}
+			case func(func(customctx.Context) (interface{}, error)) func(customctx.Context) (interface{}, error):
+				// Wrap the final handler in middleware if it's a middleware function
+				finalHandler = m(finalHandler)
 			}
 		}
 
-		return handler(cc)
+		// Execute the final middleware chain with the custom context
+		return finalHandler(cc)
 	}
 }

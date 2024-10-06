@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"context"
+	"strings"
+
 	"github.com/carverauto/eventrunner/pkg/config"
 	customctx "github.com/carverauto/eventrunner/pkg/context"
 	"github.com/carverauto/eventrunner/pkg/eventingest"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"gofr.dev/pkg/gofr"
-	"strings"
 )
 
 // JWTMiddleware is a middleware that validates JWT tokens.
@@ -39,6 +40,7 @@ func (m *JWTMiddleware) Validate(next func(customctx.Context) (interface{}, erro
 
 		// Safely retrieve Authorization header from context
 		authHeaderValue := c.Request.Context().Value("Authorization")
+
 		authHeader, ok := authHeaderValue.(string)
 		if !ok || authHeader == "" {
 			return nil, eventingest.NewAuthError("Missing or invalid authorization header")
