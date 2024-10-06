@@ -21,7 +21,7 @@ func TestHandleEvent(t *testing.T) {
 		{
 			name: "Success",
 			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
-				mockCtx := customctx.NewMockInterface(ctrl)
+				mockCtx := customctx.NewMockContext(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
 				tenantID := uuid.New()
@@ -43,7 +43,7 @@ func TestHandleEvent(t *testing.T) {
 		{
 			name: "Missing tenant ID",
 			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
-				mockCtx := customctx.NewMockInterface(ctrl)
+				mockCtx := customctx.NewMockContext(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
 				mockCtx.EXPECT().GetUUIDClaim("tenant_id").Return(uuid.Nil, false)
@@ -56,7 +56,7 @@ func TestHandleEvent(t *testing.T) {
 		{
 			name: "Missing customer ID",
 			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
-				mockCtx := customctx.NewMockInterface(ctrl)
+				mockCtx := customctx.NewMockContext(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
 				mockCtx.EXPECT().GetUUIDClaim("tenant_id").Return(uuid.New(), true)
@@ -70,7 +70,7 @@ func TestHandleEvent(t *testing.T) {
 		{
 			name: "Invalid request body",
 			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
-				mockCtx := customctx.NewMockInterface(ctrl)
+				mockCtx := customctx.NewMockContext(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
 				mockCtx.EXPECT().GetUUIDClaim("tenant_id").Return(uuid.New(), true)
@@ -85,7 +85,7 @@ func TestHandleEvent(t *testing.T) {
 		{
 			name: "Forward event failure",
 			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
-				mockCtx := customctx.NewMockInterface(ctrl)
+				mockCtx := customctx.NewMockContext(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
 				tenantID := uuid.New()
@@ -114,7 +114,7 @@ func TestHandleEvent(t *testing.T) {
 			mockCtx, mockEF := tt.setupMocks(ctrl)
 
 			server := NewHTTPServer(&gofr.App{}, mockEF)
-			result, err := server.HandleEvent(&mockCtx)
+			result, err := server.HandleEvent(mockCtx)
 
 			assert.Equal(t, tt.expectedResult, result)
 			assert.Equal(t, tt.expectedError, err)
