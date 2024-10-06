@@ -9,6 +9,17 @@ import (
 
 type TenantHandler struct{}
 
+// HandlerFunc is an adapter to allow the use of ordinary functions as Handlers.
+type HandlerFunc func(*gofr.Context) (interface{}, error)
+
+// Handle calls f(c).
+func (f HandlerFunc) Handle(c *gofr.Context) (interface{}, error) {
+	return f(c)
+}
+
+// Middleware defines the standard middleware signature.
+type Middleware func(Handler) Handler
+
 func (*TenantHandler) Create(c *gofr.Context) (models.Tenant, error) {
 	var tenant models.Tenant
 	if err := c.Bind(&tenant); err != nil {

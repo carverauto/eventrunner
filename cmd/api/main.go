@@ -23,13 +23,40 @@ func main() {
 	userHandler := &handlers.UserHandler{}
 
 	// Tenant routes (protected by API key)
-	app.POST("/tenants", tenantHandler.Create, middleware.AuthenticateAPIKey)
-	app.GET("/tenants", tenantHandler.GetAll, middleware.AuthenticateAPIKey)
+	app.POST("/tenants", adapt(tenantHandler.Create, middleware.AuthenticateAPIKey))
+	app.GET("/tenants", adapt(tenantHandler.GetAll, middleware.AuthenticateAPIKey))
 
 	// User routes (protected by API key and role-based access)
-	app.POST("/tenants/{tenant_id}/users", userHandler.Create, middleware.AuthenticateAPIKey, middleware.RequireRole("admin"))
-	app.GET("/tenants/{tenant_id}/users", userHandler.GetAll, middleware.AuthenticateAPIKey, middleware.RequireRole("admin", "user"))
+	app.POST("/tenants/{tenant_id}/users", adapt(userHandler.Create,
+		middleware.AuthenticateAPIKey,
+		middleware.RequireRole("admin")))
+	app.GET("/tenants/{tenant_id}/users", adapt(userHandler.GetAll,
+		middleware.AuthenticateAPIKey,
+		middleware.RequireRole("admin", "user")))
 
 	// Run the application
 	app.Run()
+}
+
+// adapt converts a handler func and middlewares into a gofr.Handler
+func adapt(h interface{}, middlewares ...handlers.Middleware) gofr.Handler {
+	return func(c *gofr.Context) (interface{}, error) {
+		var handler handlers.Handler
+		switch h := h.(type) {
+		case func(*gofr.Context) (interface{}, error):
+			handler = handlers.HandlerFunc(h)
+		default:
+			if h, ok := h.(handlers.Handler); ok {
+				handler = h
+			} else {
+				panic("unsupported handler type")
+			}
+		}
+
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			handler = middlewares[i](handler)
+		}
+
+		return handler.Handle(c)
+	}
 }
