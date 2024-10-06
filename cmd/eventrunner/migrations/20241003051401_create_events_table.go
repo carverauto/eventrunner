@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// Table creation statement for Cassandra
+	// Table creation statement for Cassandra.
 	createTableCassandra = `CREATE TABLE IF NOT EXISTS events (
 		id TEXT,
 		source TEXT,
@@ -23,12 +23,14 @@ const (
 	) WITH CLUSTERING ORDER BY (time DESC);`
 
 	// Example batch insert into the events table
+	//nolint:lll // This is a batch operation
 	addCassandraRecords = `BEGIN BATCH
 		INSERT INTO events (id, source, type, subject, time, data_contenttype, data, specversion) VALUES ('1', 'sourceA', 'typeA', 'subjectA', toTimestamp(now()), 'application/json', '{ "key": "value" }', '1.0');
 		INSERT INTO events (id, source, type, subject, time, data_contenttype, data, specversion) VALUES ('2', 'sourceB', 'typeB', 'subjectB', toTimestamp(now()), 'application/xml', '<key>value</key>', '1.0');
 	APPLY BATCH;`
 
 	// Template query for inserting data into events
+	//nolint:lll // This is a template query
 	eventDataCassandra = `INSERT INTO events (id, source, type, subject, time, data_contenttype, data, specversion) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
 )
 
@@ -54,11 +56,16 @@ func createTableEventsCassandra() migration.Migrate {
 			now := time.Now()
 
 			// Add records to the batch
-			if err := d.Cassandra.BatchQuery(batchName, eventDataCassandra, "3", "sourceC", "typeC", "subjectC", now, "application/json", "{ \"key\": \"valueC\" }", "1.0"); err != nil {
+			if err := d.Cassandra.
+				BatchQuery(batchName, eventDataCassandra,
+					"3", "sourceC", "typeC", "subjectC", now,
+					"application/json", "{ \"key\": \"valueC\" }", "1.0"); err != nil {
 				return err
 			}
 
-			if err := d.Cassandra.BatchQuery(batchName, eventDataCassandra, "4", "sourceD", "typeD", "subjectD", now, "application/xml", "<key>valueD</key>", "1.0"); err != nil {
+			if err := d.Cassandra.
+				BatchQuery(batchName, eventDataCassandra,
+					"4", "sourceD", "typeD", "subjectD", now, "application/xml", "<key>valueD</key>", "1.0"); err != nil {
 				return err
 			}
 

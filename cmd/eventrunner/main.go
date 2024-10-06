@@ -15,7 +15,7 @@ func main() {
 	// Initialize the Gofr app
 	app := gofr.New()
 
-	subjects := strings.Split(",", os.Getenv("NATS_SUBJECTS"))
+	subjects := strings.Split(app.Config.Get("NATS_SUBJECTS"), ",")
 
 	natsClient := nats.New(&nats.Config{
 		Server: os.Getenv("PUBSUB_BROKER"),

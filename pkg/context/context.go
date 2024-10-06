@@ -22,7 +22,7 @@ func NewCustomContext(c *gofr.Context) *CustomContext {
 	}
 }
 
-// Adapter is a test helper that implements customctx.Context
+// Adapter is a test helper that implements customctx.Context.
 type Adapter struct {
 	MockContext *MockContext
 	GofrContext *gofr.Context

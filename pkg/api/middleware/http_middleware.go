@@ -44,7 +44,7 @@ func CombineMiddleware(middlewares ...interface{}) gofr.Handler {
 	}
 }
 
-// Adapt converts a handler func and middlewares into a gofr.Handler
+// Adapt converts a handler func and middlewares into a gofr.Handler.
 func Adapt(h interface{}, middlewares ...handlers.Middleware) gofr.Handler {
 	return func(c *gofr.Context) (interface{}, error) {
 		var handler handlers.Handler
