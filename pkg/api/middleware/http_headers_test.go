@@ -1,4 +1,3 @@
-// Package middleware pkg/api/middleware/http_headers_test.go
 package middleware
 
 import (
@@ -12,7 +11,7 @@ import (
 
 func TestCustomHeadersMiddleware(t *testing.T) {
 	// Create a sample HTTP request with headers
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-Custom-Header", "CustomValue")
 	req.Header.Set("Authorization", "Bearer token")
 
@@ -22,18 +21,22 @@ func TestCustomHeadersMiddleware(t *testing.T) {
 	// Create a mock final handler that will be called after the middleware
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Extract the custom context from the request context
-		customCtx, ok := r.Context().Value("customCtx").(*customctx.CustomContext)
+		customCtx, ok := r.Context().Value(customContextKey).(*customctx.CustomContext)
 		if !ok {
 			t.Errorf("Failed to retrieve custom context")
 			return
 		}
 
 		// Validate that the headers were correctly set in the custom context
-		headerValue, _ := customCtx.GetClaim("X-Custom-Header")
+		headerValue, ok := customCtx.GetClaim("X-Custom-Header")
+		assert.True(t, ok)
 		assert.Equal(t, "CustomValue", headerValue)
 
-		authValue, _ := customCtx.GetClaim("Authorization")
+		authValue, ok := customCtx.GetClaim("Authorization")
+		assert.True(t, ok)
 		assert.Equal(t, "Bearer token", authValue)
+
+		w.WriteHeader(http.StatusOK)
 	})
 
 	// Wrap the handler with the CustomHeadersMiddleware
