@@ -33,7 +33,7 @@ func NewJWTMiddleware(ctx context.Context, config *config.OAuthConfig) (*JWTMidd
 }
 
 // Validate validates a JWT token.
-func (m *JWTMiddleware) Validate(next func(*customctx.CustomContext) (interface{}, error)) gofr.Handler {
+func (m *JWTMiddleware) Validate(next func(*customctx.Context) (interface{}, error)) gofr.Handler {
 	return func(c *gofr.Context) (interface{}, error) {
 		cc := customctx.NewCustomContext(c)
 

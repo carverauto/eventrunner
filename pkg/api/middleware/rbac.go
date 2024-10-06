@@ -8,8 +8,8 @@ import (
 )
 
 // AuthenticateAPIKey checks if the API key is valid and active, otherwise returns an error.
-func AuthenticateAPIKey(next func(*customctx.CustomContext) (interface{}, error)) func(*customctx.CustomContext) (interface{}, error) {
-	return func(cc *customctx.CustomContext) (interface{}, error) {
+func AuthenticateAPIKey(next func(*customctx.Context) (interface{}, error)) func(*customctx.Context) (interface{}, error) {
+	return func(cc *customctx.Context) (interface{}, error) {
 		apiKey, ok := cc.GetAPIKey()
 		if !ok || apiKey == "" {
 			return nil, eventingest.NewAuthError("Missing API Key")
@@ -32,15 +32,16 @@ func AuthenticateAPIKey(next func(*customctx.CustomContext) (interface{}, error)
 // The user's role is stored in the JWT token. The roles parameter is a list of roles that are allowed
 // to access the resource.
 func RequireRole(roles ...string) func(
-	func(*customctx.CustomContext) (interface{}, error)) func(*customctx.CustomContext) (interface{}, error) {
+	func(*customctx.Context) (interface{}, error)) func(*customctx.Context) (interface{}, error) {
 	return func(
-		next func(*customctx.CustomContext) (interface{}, error)) func(*customctx.CustomContext) (interface{}, error) {
-		return func(cc *customctx.CustomContext) (interface{}, error) {
+		next func(*customctx.Context) (interface{}, error)) func(*customctx.Context) (interface{}, error) {
+		return func(cc *customctx.Context) (interface{}, error) {
 			userRole, ok := cc.GetStringClaim("user_role")
 			if !ok {
 				return nil, eventingest.NewAuthError("Missing user role")
 			}
 
+			// Check if the user has the required role
 			for _, role := range roles {
 				if userRole == role {
 					return next(cc)

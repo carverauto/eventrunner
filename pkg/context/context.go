@@ -5,33 +5,33 @@ import (
 	"gofr.dev/pkg/gofr"
 )
 
-type CustomContext struct {
+type Context struct {
 	*gofr.Context
 	claims map[string]interface{}
 }
 
-// NewCustomContext creates a new CustomContext.
-func NewCustomContext(c *gofr.Context) *CustomContext {
-	return &CustomContext{
+// NewCustomContext creates a new Context.
+func NewCustomContext(c *gofr.Context) *Context {
+	return &Context{
 		Context: c,
 		claims:  make(map[string]interface{}),
 	}
 }
 
 // SetClaim sets the claim value.
-func (c *CustomContext) SetClaim(key string, value interface{}) {
+func (c *Context) SetClaim(key string, value interface{}) {
 	c.claims[key] = value
 }
 
 // GetClaim returns the claim value.
-func (c *CustomContext) GetClaim(key string) (interface{}, bool) {
+func (c *Context) GetClaim(key string) (interface{}, bool) {
 	value, ok := c.claims[key]
 
 	return value, ok
 }
 
 // GetStringClaim returns the claim value as a string.
-func (c *CustomContext) GetStringClaim(key string) (string, bool) {
+func (c *Context) GetStringClaim(key string) (string, bool) {
 	value, ok := c.claims[key]
 	if !ok {
 		return "", false
@@ -43,7 +43,7 @@ func (c *CustomContext) GetStringClaim(key string) (string, bool) {
 }
 
 // GetUUIDClaim returns the claim value as a UUID.
-func (c *CustomContext) GetUUIDClaim(key string) (uuid.UUID, bool) {
+func (c *Context) GetUUIDClaim(key string) (uuid.UUID, bool) {
 	value, ok := c.claims[key]
 	if !ok {
 		return uuid.UUID{}, false
@@ -55,7 +55,7 @@ func (c *CustomContext) GetUUIDClaim(key string) (uuid.UUID, bool) {
 }
 
 // GetAPIKey returns the API key from the context.
-func (c *CustomContext) GetAPIKey() (string, bool) {
+func (c *Context) GetAPIKey() (string, bool) {
 	if apiKey, ok := c.Context.Request.Context().Value("APIKey").(string); ok {
 		return apiKey, true
 	}

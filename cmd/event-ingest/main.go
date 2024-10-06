@@ -46,7 +46,7 @@ func main() {
 		jwtMiddleware.Validate,
 		middleware.AuthenticateAPIKey,
 		middleware.RequireRole("admin", "event_publisher"),
-		func(cc *customctx.CustomContext) (interface{}, error) {
+		func(cc *customctx.Context) (interface{}, error) {
 			return httpServer.HandleEvent(cc)
 		},
 	))
@@ -60,14 +60,14 @@ func combineMiddleware(middlewares ...interface{}) gofr.Handler {
 	return func(c *gofr.Context) (interface{}, error) {
 		cc := customctx.NewCustomContext(c)
 
-		var handler func(*customctx.CustomContext) (interface{}, error)
+		var handler func(*customctx.Context) (interface{}, error)
 
 		// Apply middlewares in reverse order
 		for i := len(middlewares) - 1; i >= 0; i-- {
 			switch m := middlewares[i].(type) {
-			case func(*customctx.CustomContext) (interface{}, error):
+			case func(*customctx.Context) (interface{}, error):
 				handler = m
-			case func(func(*customctx.CustomContext) (interface{}, error)) func(*customctx.CustomContext) (interface{}, error):
+			case func(func(*customctx.Context) (interface{}, error)) func(*customctx.Context) (interface{}, error):
 				handler = m(handler)
 			case func(gofr.Handler) gofr.Handler:
 				return m(func(*gofr.Context) (interface{}, error) {
