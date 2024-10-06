@@ -1,6 +1,7 @@
 package eventingest
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/google/uuid"
@@ -37,7 +38,7 @@ func TestGRPCEventForwarder_ForwardEvent(t *testing.T) {
 		Times(1)
 
 	err := forwarder.ForwardEvent(ctx, tenantID, customerID, eventData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Test error case
 	mockClient.EXPECT().
