@@ -4,6 +4,8 @@ package middleware
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	customctx "github.com/carverauto/eventrunner/pkg/context"
 	"github.com/carverauto/eventrunner/pkg/eventingest"
@@ -75,17 +77,17 @@ func TestAuthenticateAPIKey(t *testing.T) {
 			mockContext := customctx.NewMockContext(ctrl)
 			tt.setupMocks(mockContext)
 
-			nextHandler := handlers.HandlerFunc(func(c *gofr.Context) (interface{}, error) {
+			nextHandler := handlers.HandlerFunc(func(*gofr.Context) (interface{}, error) {
 				return "success", nil
 			})
 
 			result, err := authenticateAPIKey(mockContext, nextHandler)
 
 			if tt.expectedError != nil {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Equal(t, tt.expectedError, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectedResult, result)
 			}
 		})

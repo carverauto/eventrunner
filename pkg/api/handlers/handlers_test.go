@@ -16,7 +16,7 @@ import (
 	gofrhttp "gofr.dev/pkg/gofr/http"
 )
 
-// MockRequest is a mock implementation of gofr.Request
+// MockRequest is a mock implementation of gofr.Request.
 type MockRequest struct {
 	gofrhttp.Request
 	ctrl     *gomock.Controller

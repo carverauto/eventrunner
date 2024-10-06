@@ -30,7 +30,7 @@ func main() {
 	// Set up gRPC connection to API
 	grpcServerAddress := app.Config.Get("GRPC_SERVER_ADDRESS")
 
-	conn, err := grpc.Dial(grpcServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(grpcServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to gRPC server: %v", err)
 	}

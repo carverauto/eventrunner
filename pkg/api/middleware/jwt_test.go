@@ -51,13 +51,15 @@ func (r *MockRequest) Bind(i interface{}) error {
 	return json.Unmarshal(r.body, i)
 }
 
-func (r *MockRequest) HostName() string {
+func (*MockRequest) HostName() string {
 	return "localhost"
 }
 
 func (r *MockRequest) Header() http.Header {
 	return r.header
 }
+
+const authorizationKey contextKey = "Authorization"
 
 func TestJWTMiddleware_Validate(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -81,7 +83,7 @@ func TestJWTMiddleware_Validate(t *testing.T) {
 		{
 			name: "Valid Token",
 			setupRequest: func(req *MockRequest) {
-				req.ctx = context.WithValue(context.Background(), "Authorization", "Bearer valid_token")
+				req.ctx = context.WithValue(context.Background(), authorizationKey, "Bearer valid_token")
 			},
 			setupMocks: func() {
 				mockVerifier.EXPECT().Verify(gomock.Any(), "valid_token").Return(mockToken, nil).Times(1)
@@ -102,7 +104,7 @@ func TestJWTMiddleware_Validate(t *testing.T) {
 		},
 		{
 			name:           "Missing Authorization Header",
-			setupRequest:   func(req *MockRequest) {}, // No Authorization set in context
+			setupRequest:   func(*MockRequest) {}, // No Authorization set in context
 			setupMocks:     func() {},
 			expectedResult: nil,
 			expectedError:  eventingest.NewAuthError("Missing or invalid authorization header"),
@@ -110,7 +112,7 @@ func TestJWTMiddleware_Validate(t *testing.T) {
 		{
 			name: "Invalid Authorization Header",
 			setupRequest: func(req *MockRequest) {
-				req.ctx = context.WithValue(context.Background(), "Authorization", "InvalidHeader")
+				req.ctx = context.WithValue(context.Background(), authorizationKey, "InvalidHeader")
 			},
 			setupMocks:     func() {},
 			expectedResult: nil,
@@ -119,7 +121,7 @@ func TestJWTMiddleware_Validate(t *testing.T) {
 		{
 			name: "Invalid Token",
 			setupRequest: func(req *MockRequest) {
-				req.ctx = context.WithValue(context.Background(), "Authorization", "Bearer invalid_token")
+				req.ctx = context.WithValue(context.Background(), authorizationKey, "Bearer invalid_token")
 			},
 			setupMocks: func() {
 				mockVerifier.EXPECT().Verify(gomock.Any(), "invalid_token").Return(nil, eventingest.NewAuthError("Invalid token")).Times(1)
@@ -150,7 +152,7 @@ func TestJWTMiddleware_Validate(t *testing.T) {
 
 			tt.setupMocks()
 
-			handler := jwtMiddleware.Validate(func(cc customctx.Context) (interface{}, error) {
+			handler := jwtMiddleware.Validate(func(customctx.Context) (interface{}, error) {
 				return "success", nil
 			})
 
