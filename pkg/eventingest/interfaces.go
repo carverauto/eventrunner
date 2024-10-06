@@ -9,6 +9,8 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
+//go:generate mockgen -destination=mock_eventingest.go -package=eventingest -source=./interfaces.go ServiceClient,EventForwarder
+
 // ServiceClient is the gRPC client interface.
 type ServiceClient interface {
 	IngestEvent(ctx context.Context, in *IngestEventRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
