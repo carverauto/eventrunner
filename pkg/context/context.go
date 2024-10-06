@@ -18,6 +18,40 @@ func NewCustomContext(c *gofr.Context) *CustomContext {
 	}
 }
 
+// ContextAdapter is a test helper that implements customctx.Context
+type ContextAdapter struct {
+	MockContext *MockContext
+	GofrContext *gofr.Context
+}
+
+func (a *ContextAdapter) SetClaim(key string, value interface{}) {
+	a.MockContext.SetClaim(key, value)
+}
+
+func (a *ContextAdapter) GetClaim(key string) (interface{}, bool) {
+	return a.MockContext.GetClaim(key)
+}
+
+func (a *ContextAdapter) GetStringClaim(key string) (string, bool) {
+	return a.MockContext.GetStringClaim(key)
+}
+
+func (a *ContextAdapter) GetUUIDClaim(key string) (uuid.UUID, bool) {
+	return a.MockContext.GetUUIDClaim(key)
+}
+
+func (a *ContextAdapter) GetAPIKey() (string, bool) {
+	return a.MockContext.GetAPIKey()
+}
+
+func (a *ContextAdapter) Bind(v interface{}) error {
+	return a.MockContext.Bind(v)
+}
+
+func (a *ContextAdapter) Context() *gofr.Context {
+	return a.GofrContext
+}
+
 // SetClaim sets the claim value.
 func (c *CustomContext) SetClaim(key string, value interface{}) {
 	c.claims[key] = value

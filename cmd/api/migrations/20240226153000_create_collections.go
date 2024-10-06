@@ -11,7 +11,8 @@ func createCollections() migration.Migrate {
 		UP: func(d migration.Datasource) error {
 			collections := []string{"tenants", "users", "api_keys"}
 			for _, coll := range collections {
-				if err := d.Mongo.CreateCollection(d.Context, coll); err != nil {
+				_, err := d.SQL.Exec("db.createCollection(\"" + coll + "\")")
+				if err != nil {
 					return err
 				}
 			}
