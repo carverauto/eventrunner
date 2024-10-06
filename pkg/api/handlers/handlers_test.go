@@ -127,6 +127,6 @@ func TestTenantHandler_GetAll(t *testing.T) {
 	handler := &TenantHandler{}
 	result, err := handler.GetAll(ctx)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, expectedTenants, result)
 }
