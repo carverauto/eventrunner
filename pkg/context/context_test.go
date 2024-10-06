@@ -46,8 +46,8 @@ type ContextWrapper struct {
 func NewContextWrapper(gofrCtx GofrContextWrapper) *ContextWrapper {
 	return &ContextWrapper{
 		CustomContext: &CustomContext{
-			Context: nil, // We're not setting this as we're using the wrapper
-			claims:  make(map[string]interface{}),
+			gofrContext: nil, // We're not setting this as we're using the wrapper
+			claims:      make(map[string]interface{}),
 		},
 		gofrCtx: gofrCtx,
 	}

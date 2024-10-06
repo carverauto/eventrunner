@@ -6,15 +6,15 @@ import (
 )
 
 type CustomContext struct {
-	*gofr.Context
-	claims map[string]interface{}
+	gofrContext *gofr.Context
+	claims      map[string]interface{}
 }
 
 // NewCustomContext creates a new Context.
 func NewCustomContext(c *gofr.Context) *CustomContext {
 	return &CustomContext{
-		Context: c,
-		claims:  make(map[string]interface{}),
+		gofrContext: c,
+		claims:      make(map[string]interface{}),
 	}
 }
 
@@ -56,9 +56,19 @@ func (c *CustomContext) GetUUIDClaim(key string) (uuid.UUID, bool) {
 
 // GetAPIKey returns the API key from the context.
 func (c *CustomContext) GetAPIKey() (string, bool) {
-	if apiKey, ok := c.Context.Request.Context().Value("APIKey").(string); ok {
+	if apiKey, ok := c.gofrContext.Request.Context().Value("APIKey").(string); ok {
 		return apiKey, true
 	}
 
 	return "", false
+}
+
+// Bind binds the input to the given value.
+func (c *CustomContext) Bind(v interface{}) error {
+	return c.gofrContext.Bind(v)
+}
+
+// Context returns the underlying gofr.Context.
+func (c *CustomContext) Context() *gofr.Context {
+	return c.gofrContext
 }
