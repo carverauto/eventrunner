@@ -10,6 +10,10 @@ import (
 	gofrHTTP "gofr.dev/pkg/gofr/http"
 )
 
+type contextKey string
+
+const customContextKey contextKey = "customCtx"
+
 func CustomHeadersMiddleware() gofrHTTP.Middleware {
 	return func(inner http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +31,7 @@ func CustomHeadersMiddleware() gofrHTTP.Middleware {
 			}
 
 			// Create a new context with the custom context
-			ctxWithCustom := context.WithValue(r.Context(), "customCtx", customCtx)
+			ctxWithCustom := context.WithValue(r.Context(), customContextKey, customCtx)
 
 			// Store the custom context back into the request
 			r = r.WithContext(ctxWithCustom)

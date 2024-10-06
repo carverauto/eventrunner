@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
 
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
@@ -44,7 +43,7 @@ func main() {
 	httpServer := eventingest.NewHTTPServer(app, eventForwarder)
 
 	// Register routes with middleware chain
-	app.POST("/events", combineMiddleware(
+	app.POST("/events", middleware.CombineMiddleware(
 		jwtMiddleware.Validate,
 		middleware.AuthenticateAPIKey,
 		middleware.RequireRole("admin", "event_publisher"),
@@ -55,42 +54,4 @@ func main() {
 
 	// Run the application
 	app.Run()
-}
-
-// combineMiddleware chains multiple middleware functions together
-func combineMiddleware(middlewares ...interface{}) gofr.Handler {
-	return func(c *gofr.Context) (interface{}, error) {
-		// Retrieve the custom context from the original context
-		customCtx, ok := c.Request.Context().Value("customCtx").(*customctx.CustomContext)
-		if !ok {
-			return nil, errors.New("failed to retrieve custom context")
-		}
-
-		// Define the final handler that will be called after applying all middleware
-		finalHandler := func(ctx customctx.Context) (interface{}, error) {
-			return nil, eventingest.NewInternalError("No handler provided")
-		}
-
-		// Apply middlewares in reverse order to build the middleware chain
-		for i := len(middlewares) - 1; i >= 0; i-- {
-			switch m := middlewares[i].(type) {
-			case func(customctx.Context) (interface{}, error):
-				// Set the final handler to the current one if no other handler is set
-				if i == len(middlewares)-1 {
-					finalHandler = m
-				} else {
-					// Wrap the final handler in the current function
-					finalHandler = func(ctx customctx.Context) (interface{}, error) {
-						return m(ctx)
-					}
-				}
-			case func(func(customctx.Context) (interface{}, error)) func(customctx.Context) (interface{}, error):
-				// Wrap the final handler in middleware if it's a middleware function
-				finalHandler = m(finalHandler)
-			}
-		}
-
-		// Execute the final middleware chain with the custom context
-		return finalHandler(customCtx)
-	}
 }
