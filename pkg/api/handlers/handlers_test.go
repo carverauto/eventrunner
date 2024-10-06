@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
 	"testing"
 
@@ -103,4 +104,29 @@ func TestTenantHandler_Create(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTenantHandler_GetAll(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMongo := container.NewMockMongo(ctrl)
+	ctx := &gofr.Context{
+		Container: &container.Container{
+			Mongo: mockMongo,
+		},
+	}
+
+	expectedTenants := []models.Tenant{
+		{ID: uuid.New(), Name: "Tenant 1"},
+		{ID: uuid.New(), Name: "Tenant 2"},
+	}
+
+	mockMongo.EXPECT().Find(ctx, "tenants", bson.M{}, gomock.Any()).SetArg(3, expectedTenants).Return(nil)
+
+	handler := &TenantHandler{}
+	result, err := handler.GetAll(ctx)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTenants, result)
 }
