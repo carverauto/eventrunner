@@ -1,10 +1,11 @@
 package main
 
 import (
-	nats "github.com/carverauto/gofr-nats"
 	"os"
 	"strings"
 	"time"
+
+	nats "github.com/carverauto/gofr-nats"
 
 	"github.com/carverauto/eventrunner/pkg/eventrunner"
 	"gofr.dev/pkg/gofr"
