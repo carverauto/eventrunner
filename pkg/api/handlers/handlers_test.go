@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/carverauto/eventrunner/pkg/api/models"
 	"github.com/google/uuid"
@@ -29,6 +30,7 @@ type MockRequestMockRecorder struct {
 func NewMockRequest(ctrl *gomock.Controller) *MockRequest {
 	mock := &MockRequest{ctrl: ctrl}
 	mock.recorder = &MockRequestMockRecorder{mock}
+
 	return mock
 }
 
@@ -40,6 +42,7 @@ func (m *MockRequest) Bind(v interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Bind", v)
 	ret0, _ := ret[0].(error)
+
 	return ret0
 }
 
