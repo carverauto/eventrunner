@@ -5,9 +5,9 @@ import (
 	"gofr.dev/pkg/gofr"
 )
 
-//go:generate mockgen -destination=mock_context.go -package=context github.com/carverauto/eventrunner/pkg/context Interface
+//go:generate mockgen -destination=mock_context.go -package=context github.com/carverauto/eventrunner/pkg/context Context
 
-type Interface interface {
+type Context interface {
 	SetClaim(key string, value interface{})
 	GetClaim(key string) (interface{}, bool)
 	GetStringClaim(key string) (string, bool)

@@ -14,13 +14,13 @@ import (
 func TestHandleEvent(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupMocks     func(*gomock.Controller) (customctx.Interface, EventForwarder)
+		setupMocks     func(*gomock.Controller) (customctx.Context, EventForwarder)
 		expectedResult interface{}
 		expectedError  error
 	}{
 		{
 			name: "Success",
-			setupMocks: func(ctrl *gomock.Controller) (customctx.Interface, EventForwarder) {
+			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
 				mockCtx := customctx.NewMockInterface(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
@@ -42,7 +42,7 @@ func TestHandleEvent(t *testing.T) {
 		},
 		{
 			name: "Missing tenant ID",
-			setupMocks: func(ctrl *gomock.Controller) (customctx.Interface, EventForwarder) {
+			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
 				mockCtx := customctx.NewMockInterface(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
@@ -55,7 +55,7 @@ func TestHandleEvent(t *testing.T) {
 		},
 		{
 			name: "Missing customer ID",
-			setupMocks: func(ctrl *gomock.Controller) (customctx.Interface, EventForwarder) {
+			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
 				mockCtx := customctx.NewMockInterface(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
@@ -69,7 +69,7 @@ func TestHandleEvent(t *testing.T) {
 		},
 		{
 			name: "Invalid request body",
-			setupMocks: func(ctrl *gomock.Controller) (customctx.Interface, EventForwarder) {
+			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
 				mockCtx := customctx.NewMockInterface(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 
@@ -84,7 +84,7 @@ func TestHandleEvent(t *testing.T) {
 		},
 		{
 			name: "Forward event failure",
-			setupMocks: func(ctrl *gomock.Controller) (customctx.Interface, EventForwarder) {
+			setupMocks: func(ctrl *gomock.Controller) (customctx.Context, EventForwarder) {
 				mockCtx := customctx.NewMockInterface(ctrl)
 				mockEF := NewMockEventForwarder(ctrl)
 

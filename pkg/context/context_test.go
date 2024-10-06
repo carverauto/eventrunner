@@ -3,19 +3,21 @@ package context
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// GofrContextWrapper is an interface that wraps the methods of gofr.Context that we use
+// GofrContextWrapper is an interface that wraps the methods of gofr.Context that we use.
 type GofrContextWrapper interface {
 	Param(key string) string
 	PathParam(key string) string
 	Bind(v interface{}) error
 }
 
-// MockGofrContextWrapper is a mock for GofrContextWrapper
+// MockGofrContextWrapper is a mock for GofrContextWrapper.
 type MockGofrContextWrapper struct {
 	mock.Mock
 }
@@ -35,15 +37,15 @@ func (m *MockGofrContextWrapper) Bind(v interface{}) error {
 	return args.Error(0)
 }
 
-// ContextWrapper wraps our Context and uses GofrContextWrapper instead of *gofr.Context
+// ContextWrapper wraps our Context and uses GofrContextWrapper instead of *gofr.Context.
 type ContextWrapper struct {
-	*Context
+	*CustomContext
 	gofrCtx GofrContextWrapper
 }
 
 func NewContextWrapper(gofrCtx GofrContextWrapper) *ContextWrapper {
 	return &ContextWrapper{
-		Context: &Context{
+		CustomContext: &CustomContext{
 			Context: nil, // We're not setting this as we're using the wrapper
 			claims:  make(map[string]interface{}),
 		},
@@ -60,6 +62,7 @@ func (c *ContextWrapper) GetAPIKey() (string, bool) {
 	if apiKey != "" {
 		return apiKey, true
 	}
+
 	return "", false
 }
 
@@ -125,12 +128,14 @@ func TestGetAPIKey(t *testing.T) {
 
 	// Test case when APIKey is present
 	mockGofrCtx.On("Param", "APIKey").Return("test-api-key").Once()
+
 	apiKey, ok := customCtx.GetAPIKey()
 	assert.True(t, ok)
 	assert.Equal(t, "test-api-key", apiKey)
 
 	// Test case when APIKey is not present
 	mockGofrCtx.On("Param", "APIKey").Return("").Once()
+
 	apiKey, ok = customCtx.GetAPIKey()
 	assert.False(t, ok)
 	assert.Empty(t, apiKey)
@@ -149,6 +154,7 @@ func TestBind(t *testing.T) {
 	mockGofrCtx.On("Bind", &testStruct).Return(nil)
 
 	err := customCtx.Bind(&testStruct)
-	assert.NoError(t, err)
+
+	require.NoError(t, err)
 	mockGofrCtx.AssertExpectations(t)
 }

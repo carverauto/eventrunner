@@ -20,7 +20,7 @@ func NewHTTPServer(app *gofr.App, forwarder EventForwarder) *HTTPServer {
 }
 
 // HandleEvent handles an event request, it accepts a Context and returns an interface and an error.
-func (s *HTTPServer) HandleEvent(cc *customctx.Interface) (interface{}, error) {
+func (s *HTTPServer) HandleEvent(cc customctx.Context) (interface{}, error) {
 	tenantID, ok := cc.GetUUIDClaim("tenant_id")
 	if !ok {
 		return nil, NewAuthError("Missing tenant ID")
@@ -36,7 +36,7 @@ func (s *HTTPServer) HandleEvent(cc *customctx.Interface) (interface{}, error) {
 		return nil, NewProcessingError("Invalid request body")
 	}
 
-	if err := s.eventForwarder.ForwardEvent(cc.Context, tenantID, customerID, eventData); err != nil {
+	if err := s.eventForwarder.ForwardEvent(cc.Context(), tenantID, customerID, eventData); err != nil {
 		return nil, NewProcessingError("Failed to forward event")
 	}
 
