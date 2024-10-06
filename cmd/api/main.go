@@ -23,16 +23,16 @@ func main() {
 	userHandler := &handlers.UserHandler{}
 
 	// Tenant routes (protected by API key)
-	app.POST("/tenants", adapt(tenantHandler.Create, middlewarePkg.AuthenticateAPIKey))
-	app.GET("/tenants", adapt(tenantHandler.GetAll, middlewarePkg.AuthenticateAPIKey))
+	app.POST("/tenants", adapt(tenantHandler.Create, middleware.AuthenticateAPIKey))
+	app.GET("/tenants", adapt(tenantHandler.GetAll, middleware.AuthenticateAPIKey))
 
 	// User routes (protected by API key and role-based access)
 	app.POST("/tenants/{tenant_id}/users", adapt(userHandler.Create,
-		middlewarePkg.AuthenticateAPIKey,
-		middlewarePkg.RequireRole("admin")))
+		middleware.AuthenticateAPIKey,
+		middleware.RequireRole("admin")))
 	app.GET("/tenants/{tenant_id}/users", adapt(userHandler.GetAll,
-		middlewarePkg.AuthenticateAPIKey,
-		middlewarePkg.RequireRole("admin", "user")))
+		middleware.AuthenticateAPIKey,
+		middleware.RequireRole("admin", "user")))
 
 	// Run the application
 	app.Run()
