@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package eventingest;
+
+option go_package = "./eventingest";
+
+service EventIngestService {
+  rpc IngestEvent (IngestEventRequest) returns (IngestEventResponse) {}
+}
+
+message IngestEventRequest {
+  bytes event_data = 1;
+}
+
+message IngestEventResponse {
+  string event_id = 1;
+  string status = 2;
+}

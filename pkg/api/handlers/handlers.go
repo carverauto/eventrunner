@@ -9,7 +9,7 @@ import (
 
 type TenantHandler struct{}
 
-func (h *TenantHandler) Create(c *gofr.Context) (interface{}, error) {
+func (*TenantHandler) Create(c *gofr.Context) (interface{}, error) {
 	var tenant models.Tenant
 	if err := c.Bind(&tenant); err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (h *TenantHandler) Create(c *gofr.Context) (interface{}, error) {
 	return tenant, nil
 }
 
-func (h *TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
+func (*TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
 	var tenants []models.Tenant
 	err := c.Mongo.Find(c, "tenants", bson.M{}, &tenants)
 
@@ -34,7 +34,7 @@ func (h *TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
 
 type UserHandler struct{}
 
-func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
+func (*UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	return user, nil
 }
 
-func (h *UserHandler) GetAll(c *gofr.Context) (interface{}, error) {
+func (*UserHandler) GetAll(c *gofr.Context) (interface{}, error) {
 	tenantID, err := primitive.ObjectIDFromHex(c.Param("tenant_id"))
 	if err != nil {
 		return nil, err
