@@ -1,7 +1,6 @@
 package eventingest
 
 import (
-	"errors"
 	"testing"
 
 	customctx "github.com/carverauto/eventrunner/pkg/context"
@@ -75,7 +74,7 @@ func TestHandleEvent(t *testing.T) {
 
 				mockCtx.EXPECT().GetUUIDClaim("tenant_id").Return(uuid.New(), true)
 				mockCtx.EXPECT().GetUUIDClaim("customer_id").Return(uuid.New(), true)
-				mockCtx.EXPECT().Bind(gomock.Any()).Return(errors.New("invalid JSON"))
+				mockCtx.EXPECT().Bind(gomock.Any()).Return(errInvalidJSON)
 
 				return mockCtx, mockEF
 			},
@@ -97,7 +96,7 @@ func TestHandleEvent(t *testing.T) {
 				mockCtx.EXPECT().Bind(gomock.Any()).SetArg(0, eventData).Return(nil)
 				mockCtx.EXPECT().Context().Return(&gofr.Context{})
 
-				mockEF.EXPECT().ForwardEvent(gomock.Any(), tenantID, customerID, eventData).Return(errors.New("forwarding failed"))
+				mockEF.EXPECT().ForwardEvent(gomock.Any(), tenantID, customerID, eventData).Return(errForwardFail)
 
 				return mockCtx, mockEF
 			},

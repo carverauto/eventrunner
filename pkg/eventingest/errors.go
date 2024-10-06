@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+var (
+	errInvalidJSON = NewProcessingError("Invalid JSON")
+	errForwardFail = NewProcessingError("Failed to forward event")
+)
+
 // CustomError is a custom error type that includes an HTTP status code.
 type CustomError struct {
 	Message    string
