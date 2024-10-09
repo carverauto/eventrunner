@@ -3,10 +3,11 @@ package eventrunner
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 
 type EventRouter struct {
 	app             AppInterface
-	natsClient      NATSClient
+	natsClient      *nats.PubSubWrapper
 	bufferPool      *sync.Pool
 	middlewares     []Middleware
 	consumerManager EventConsumer
@@ -32,7 +33,7 @@ type EventRouter struct {
 type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
-func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
+func NewEventRouter(app AppInterface, natsClient *nats.PubSubWrapper, cassandraClient *cassandraPkg.Client) *EventRouter {
 	if cassandraClient == nil {
 		// Configure Cassandra
 		cassandraConfig := cassandraPkg.Config{
@@ -51,26 +52,9 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 	app.Migrate(migrations.All())
 
 	if natsClient == nil {
-		subjects := strings.Split(os.Getenv("NATS_SUBJECTS"), ",")
-		realNatsClient := nats.New(&nats.Config{
-			Server: os.Getenv("PUBSUB_BROKER"),
-			Stream: nats.StreamConfig{
-				Stream:   os.Getenv("NATS_STREAM"),
-				Subjects: subjects,
-			},
-			MaxWait:     5 * time.Second,
-			BatchSize:   100,
-			MaxPullWait: 10,
-			Consumer:    os.Getenv("NATS_CONSUMER"),
-			CredsFile:   os.Getenv("NATS_CREDS_FILE"),
-		})
-		realNatsClient.UseLogger(app.Logger())
-		realNatsClient.UseMetrics(app.Metrics())
-		realNatsClient.Connect()
-		natsClient = realNatsClient
+		app.Logger().Error("NATS client is nil. It should be provided when creating EventRouter.")
+		return nil
 	}
-
-	app.AddPubSub(natsClient)
 
 	consumerManager := NewConsumerManager(app, app.Logger())
 	cassandraSink := NewCassandraEventSink()
@@ -142,9 +126,11 @@ func (er *EventRouter) applyMiddleware(handler HandlerFunc) HandlerFunc {
 
 func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) error {
 	// Log event using ConsumerManager
-	if err := er.consumerManager.ConsumeEvent(c, event); err != nil {
-		er.logger.Errorf("Failed to consume event: %v", err)
-	}
+	go func() {
+		if err := er.consumerManager.ConsumeEvent(c, event); err != nil {
+			er.logger.Errorf("Failed to consume event: %v", err)
+		}
+	}()
 
 	eventType := event.Type()
 	tenantID, _ := event.Context.GetExtension("tenantid")
@@ -161,11 +147,19 @@ func (er *EventRouter) routeEvent(c *gofr.Context, event *cloudevents.Event) err
 
 	messageID := uuid.New().String()
 
-	if err := er.natsClient.Publish(c, consumerQueue, buf.Bytes()); err != nil {
+	ctx, cancel := context.WithTimeout(c.Context, 30*time.Second)
+	defer cancel()
+
+	if err := er.natsClient.Publish(ctx, consumerQueue, buf.Bytes()); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			er.logger.Warnf("publish operation timed out for event %s to queue %s: %v", messageID, consumerQueue, err)
+		} else {
+			er.logger.Errorf("failed to publish event %s to queue %s: %v", messageID, consumerQueue, err)
+		}
 		return fmt.Errorf("failed to publish event: %w", err)
 	}
 
-	er.logger.Logf("published event %s to %s for tenant %s", messageID, consumerQueue, tenantID)
+	er.logger.Infof("published event %s to %s for tenant %s", messageID, consumerQueue, tenantID)
 
 	return nil
 }

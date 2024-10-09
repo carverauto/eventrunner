@@ -34,11 +34,11 @@ type Buffer interface {
 type NATSClient interface {
 	Publish(ctx context.Context, topic string, message []byte) error
 	Subscribe(ctx context.Context, topic string) (*pubsub.Message, error)
-	Connect()
+	Connect() error
 	Health() datasource.Health
 	CreateTopic(ctx context.Context, name string) error
 	DeleteTopic(ctx context.Context, name string) error
-	Close() error
+	Close(ctx context.Context) error
 	UseLogger(logger any)
 	UseMetrics(metrics any)
 	UseTracer(tracer any)

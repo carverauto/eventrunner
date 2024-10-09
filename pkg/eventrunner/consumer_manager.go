@@ -72,10 +72,12 @@ func (cm *ConsumerManager) ConsumeEvent(c *gofr.Context, event *cloudevents.Even
 			continue
 		}
 
+		// go func() {
 		if err := consumer.ConsumeEvent(c, event); err != nil {
 			cm.logger.Errorf("EventConsumer %s failed: %v", name, err)
 			consumerErrors.Errors = append(consumerErrors.Errors, fmt.Errorf("consumer %s failed: %w", name, err))
 		}
+		// }()
 	}
 
 	if len(consumerErrors.Errors) > 0 {
