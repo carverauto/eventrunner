@@ -25,7 +25,8 @@ type Customer struct {
 }
 
 type User struct {
-	ID         uuid.UUID `bson:"_id,omitempty" json:"id,omitempty"`
+	// ID         uuid.UUID `bson:"_id,omitempty" json:"id,omitempty"`
+	ID         string    `bson:"_id,omitempty" json:"id,omitempty"`
 	TenantID   uuid.UUID `bson:"tenant_id" json:"tenant_id"`
 	CustomerID uuid.UUID `bson:"customer_id" json:"customer_id"`
 	Username   string    `bson:"username" json:"username"`

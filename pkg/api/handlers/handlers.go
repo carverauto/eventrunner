@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/carverauto/eventrunner/pkg/api/models"
 	"github.com/google/uuid"
+	ory "github.com/ory/client-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"gofr.dev/pkg/gofr"
 )
@@ -43,22 +46,64 @@ func (*TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
 	return tenants, err
 }
 
-type UserHandler struct{}
+type UserHandler struct {
+	OryClient *ory.APIClient
+}
 
-func (*UserHandler) Create(c *gofr.Context) (interface{}, error) {
+func (h *UserHandler) Login(c *gofr.Context) (interface{}, error) {
+	flow, _, err := h.OryClient.FrontendAPI.CreateNativeLoginFlow(context.Background()).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the login flow to the client
+	return flow, nil
+}
+
+func (h *UserHandler) SubmitLogin(c *gofr.Context) (interface{}, error) {
+	var loginData ory.UpdateLoginFlowBody
+	if err := c.Bind(&loginData); err != nil {
+		return nil, err
+	}
+
+	response, _, err := h.OryClient.FrontendAPI.UpdateLoginFlow(context.Background()).
+		Flow(c.Param("flow")).
+		UpdateLoginFlowBody(loginData).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the session token or redirect URL
+	return response, nil
+}
+
+func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return nil, err
 	}
 
-	// TODO: Hash password before storing
+	// Create identity in Ory
+	identity := ory.CreateIdentityBody{
+		SchemaId: "default",
+		Traits: map[string]interface{}{
+			"email": user.Email,
+			// Add other traits as needed
+		},
+	}
 
-	result, err := c.Mongo.InsertOne(c, "users", user)
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(context.Background()).CreateIdentityBody(identity).Execute()
 	if err != nil {
 		return nil, err
 	}
 
-	user.ID = result.(uuid.UUID)
+	// Store additional user data in MongoDB if needed
+	user.ID = createdIdentity.Id
+	_, err = c.Mongo.InsertOne(c, "users", user)
+	if err != nil {
+		return nil, err
+	}
 
 	return user, nil
 }

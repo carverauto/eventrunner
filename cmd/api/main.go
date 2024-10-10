@@ -1,9 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"github.com/carverauto/eventrunner/cmd/api/migrations"
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
+	ory "github.com/ory/client-go"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/datasource/mongo"
 )
@@ -18,13 +21,20 @@ func main() {
 	// Run migrations
 	app.Migrate(migrations.All())
 
+	// Set up Ory client
+	configuration := ory.NewConfiguration()
+	configuration.Servers = []ory.ServerConfiguration{
+		{URL: os.Getenv("ORY_PROJECT_URL")},
+	}
+	oryClient := ory.NewAPIClient(configuration)
+
 	// Set up routes
 	tenantHandler := &handlers.TenantHandler{}
 	userHandler := &handlers.UserHandler{}
 
 	// Tenant routes (protected by API key)
-	app.POST("/tenants", middleware.Adapt(tenantHandler.Create, middleware.AuthenticateAPIKey))
-	app.GET("/tenants", middleware.Adapt(tenantHandler.GetAll, middleware.AuthenticateAPIKey))
+	app.POST("/tenants", middleware.Adapt(tenantHandler.Create, middleware.OryAuthMiddleware(oryClient)))
+	app.GET("/tenants", middleware.Adapt(tenantHandler.GetAll, middleware.OryAuthMiddleware(oryClient)))
 
 	// User routes (protected by API key and role-based access)
 	app.POST("/tenants/{tenant_id}/users", middleware.Adapt(userHandler.Create,
