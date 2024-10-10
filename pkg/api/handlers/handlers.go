@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"context"
-
 	"github.com/carverauto/eventrunner/pkg/api/models"
 	"github.com/google/uuid"
 	ory "github.com/ory/client-go"
@@ -51,7 +49,7 @@ type UserHandler struct {
 }
 
 func (h *UserHandler) Login(c *gofr.Context) (interface{}, error) {
-	flow, _, err := h.OryClient.FrontendAPI.CreateNativeLoginFlow(context.Background()).Execute()
+	flow, _, err := h.OryClient.FrontendAPI.CreateNativeLoginFlow(c.Context).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +64,7 @@ func (h *UserHandler) SubmitLogin(c *gofr.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	response, _, err := h.OryClient.FrontendAPI.UpdateLoginFlow(context.Background()).
+	response, _, err := h.OryClient.FrontendAPI.UpdateLoginFlow(c.Context).
 		Flow(c.Param("flow")).
 		UpdateLoginFlowBody(loginData).
 		Execute()
@@ -80,7 +78,7 @@ func (h *UserHandler) SubmitLogin(c *gofr.Context) (interface{}, error) {
 
 /*
 func (h *UserHandler) GetUserInfo(c *gofr.Context) (interface{}, error) {
-	session, _, err := h.OryClient.FrontendAPI.ToSession(context.Background()).Execute()
+	session, _, err := h.OryClient.FrontendAPI.ToSession(c.Context).Execute()
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +110,7 @@ func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 		},
 	}
 
-	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(context.Background()).CreateIdentityBody(identity).Execute()
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
 		return nil, err
 	}
