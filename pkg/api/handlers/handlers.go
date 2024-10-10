@@ -78,6 +78,24 @@ func (h *UserHandler) SubmitLogin(c *gofr.Context) (interface{}, error) {
 	return response, nil
 }
 
+/*
+func (h *UserHandler) GetUserInfo(c *gofr.Context) (interface{}, error) {
+	session, _, err := h.OryClient.FrontendAPI.ToSession(context.Background()).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	traits := session.Identity.Traits.(map[string]interface{})
+	tenantID, _ := uuid.Parse(traits["tenant_id"].(string))
+	customerID, _ := uuid.Parse(traits["customer_id"].(string))
+
+	// Use these IDs for authorization or to fetch additional user data from MongoDB
+	// ...
+
+	return session.Identity, nil
+}
+*/
+
 func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
@@ -88,8 +106,9 @@ func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	identity := ory.CreateIdentityBody{
 		SchemaId: "default",
 		Traits: map[string]interface{}{
-			"email": user.Email,
-			// Add other traits as needed
+			"email":       user.Email,
+			"tenant_id":   user.TenantID.String(),
+			"customer_id": user.CustomerID.String(),
 		},
 	}
 
@@ -99,7 +118,7 @@ func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	}
 
 	// Store additional user data in MongoDB if needed
-	user.ID = createdIdentity.Id
+	user.OryID = createdIdentity.Id
 	_, err = c.Mongo.InsertOne(c, "users", user)
 	if err != nil {
 		return nil, err
