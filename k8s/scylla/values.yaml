@@ -16,4 +16,8 @@ scyllaImage:
   repository: scylladb/scylla
 agentImage:
   repository: scylladb/scylla-manager-agent
-
+spec:
+  sysctls:
+    - "fs.aio-max-nr=2097152"
+serviceMonitor:
+  create: true

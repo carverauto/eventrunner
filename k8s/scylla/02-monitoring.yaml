@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: scylla
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: local-path
+---
+apiVersion: scylla.scylladb.com/v1alpha1
+kind: ScyllaDBMonitoring
+metadata:
+  name: eventrunner
+  namespace: scylla
+spec:
+  type: Platform
+  endpointsSelector:
+    matchLabels:
+      app.kubernetes.io/name: scylla
+      scylla-operator.scylladb.com/scylla-service-type: member
+      scylla/cluster: scylla
+  components:
+    prometheus:
+      storage:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: local-path
+            resources:
+              requests:
+                storage: 1Gi
+    grafana:
+      exposeOptions:
+        webInterface:
+          ingress:
+            ingressClassName: nginx
+            dnsDomains:
+              - grafana.tunnel.threadr.ai
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eventrunner-grafana
+  namespace: scylla
+  annotations:
+    cert-manager.io/cluster-issuer: "threadr-issuer"
+    external-dns.alpha.kubernetes.io/hostname: "grafana.tunnel.threadr.ai"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  labels:
+    scylla-operator.scylladb.com/controller-name: grafana
+    scylla-operator.scylladb.com/scylladbmonitoring-name: eventrunner
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: grafana.tunnel.threadr.ai
+      http:
+        paths:
+          - backend:
+              service:
+                name: eventrunner-grafana
+                port:
+                  number: 443
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - grafana.tunnel.threadr.ai
+      secretName: default-tunnel-threadr-ai-tls
+status:
+  loadBalancer:
+    ingress:
+      - ip: 10.43.0.3

@@ -186,23 +186,25 @@ func (m *MockNATSClient) EXPECT() *MockNATSClientMockRecorder {
 }
 
 // Close mocks base method.
-func (m *MockNATSClient) Close() error {
+func (m *MockNATSClient) Close(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close")
+	ret := m.ctrl.Call(m, "Close", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Close indicates an expected call of Close.
-func (mr *MockNATSClientMockRecorder) Close() *gomock.Call {
+func (mr *MockNATSClientMockRecorder) Close(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockNATSClient)(nil).Close))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockNATSClient)(nil).Close), ctx)
 }
 
 // Connect mocks base method.
-func (m *MockNATSClient) Connect() {
+func (m *MockNATSClient) Connect() error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Connect")
+	ret := m.ctrl.Call(m, "Connect")
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Connect indicates an expected call of Connect.
