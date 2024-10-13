@@ -32,11 +32,12 @@ func main() {
 	tenantHandler := &handlers.TenantHandler{}
 	userHandler := &handlers.UserHandler{}
 
-	// Tenant routes (protected by API key)
+	// Tenant routes (protected by Ory Auth)
 	app.POST("/tenants", middleware.Adapt(tenantHandler.Create, middleware.OryAuthMiddleware(oryClient)))
 	app.GET("/tenants", middleware.Adapt(tenantHandler.GetAll, middleware.OryAuthMiddleware(oryClient)))
 
 	// User routes (protected by API key and role-based access)
+	// TODO: Add Ory Auth middleware to user routes
 	app.POST("/tenants/{tenant_id}/users", middleware.Adapt(userHandler.Create,
 		middleware.AuthenticateAPIKey,
 		middleware.RequireRole("admin")))
