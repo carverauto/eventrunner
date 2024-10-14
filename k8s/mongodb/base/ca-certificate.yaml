@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ca-certificate
+  namespace: mongo
+spec:
+  commonName: "Carver Automation CA"
+  isCA: true
+  duration: 2160h # 90 days
+  secretName: my-ca-secret
+  issuerRef:
+    name: my-selfsigned-ca
+    kind: Issuer

@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mongodb-tls
+  namespace: mongo
+spec:
+  secretName: mongodb-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days before expiration
+  issuerRef:
+    kind: ClusterIssuer
+    name: threadr-issuer
+  commonName: mongodb.tunnel.threadr.ai
+  dnsNames:
+    - mongodb.tunnel.threadr.ai
+  usages:
+    - digital signature
+    - key encipherment
