@@ -16,3 +16,5 @@ spec:
   usages:
     - digital signature
     - key encipherment
+    - server auth
+    - client auth
