@@ -15,7 +15,7 @@ func main() {
 	app := gofr.New()
 
 	// Set up MongoDB
-	db := mongo.New(mongo.Config{URI: "mongodb://localhost:27017", Database: "eventrunner"})
+	db := mongo.New(mongo.Config{URI: os.Getenv("DB_URL"), Database: os.Getenv("DB_NAME")})
 	app.AddMongo(db)
 
 	// Run migrations
