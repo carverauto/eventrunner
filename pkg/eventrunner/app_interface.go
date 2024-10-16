@@ -13,6 +13,10 @@ type AppWrapper struct {
 	app *gofr.App
 }
 
+func (a *AppWrapper) AddMongo(mongoClient container.MongoProvider) {
+	a.app.AddMongo(mongoClient)
+}
+
 func NewAppWrapper(app *gofr.App) *AppWrapper {
 	return &AppWrapper{app: app}
 }

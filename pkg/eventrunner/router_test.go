@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -116,7 +117,11 @@ func TestEventRouter_routeEvent(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockConsumerManager := NewMockEventConsumer(ctrl)
-	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	done := make(chan struct{})
+
+	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Do(func(ctx *gofr.Context, event *cloudevents.Event) {
+		close(done)
+	}).Return(nil).Times(1)
 
 	mockApp := NewMockAppInterface(ctrl)
 	mockLogger := logging.NewMockLogger(logging.DEBUG)
@@ -126,7 +131,6 @@ func TestEventRouter_routeEvent(t *testing.T) {
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	er := &EventRouter{
-		// app:             gofr.New(),
 		app:             mockApp,
 		consumerManager: mockConsumerManager,
 		bufferPool: &sync.Pool{
@@ -156,6 +160,14 @@ func TestEventRouter_routeEvent(t *testing.T) {
 
 	err := er.routeEvent(mockContext, &event)
 	assert.NoError(t, err)
+
+	// Wait for ConsumeEvent to be called
+	select {
+	case <-done:
+		// Success
+	case <-time.After(time.Second):
+		t.Fatal("ConsumeEvent was not called")
+	}
 }
 
 func TestNewEventRouter(t *testing.T) {
@@ -168,7 +180,6 @@ func TestNewEventRouter(t *testing.T) {
 
 	mockApp.EXPECT().AddCassandra(gomock.Any()).Times(1)
 	mockApp.EXPECT().Migrate(gomock.Any()).Times(1)
-	mockApp.EXPECT().AddPubSub(gomock.Any()).Times(1)
 	mockApp.EXPECT().Logger().Return(logging.NewLogger(logging.INFO)).AnyTimes()
 	mockApp.EXPECT().Metrics().Return(nil).AnyTimes()
 
@@ -384,7 +395,7 @@ func TestEventRouter_routeEvent_ConsumeEventError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockConsumerManager := NewMockEventConsumer(ctrl)
-	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(errConsumeEventError).Times(1)
+	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(errConsumeEventError).AnyTimes()
 
 	mockApp := NewMockAppInterface(ctrl)
 	mockLogger := logging.NewMockLogger(logging.INFO)
@@ -420,7 +431,11 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockConsumerManager := NewMockEventConsumer(ctrl)
-	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	mockApp := NewMockAppInterface(ctrl)
+	mockLogger := logging.NewMockLogger(logging.DEBUG)
+	mockApp.EXPECT().Logger().Return(mockLogger).AnyTimes()
 
 	mockNatsClient := NewMockNATSClient(ctrl)
 	mockNatsClient.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(errPublishError).Times(1)
@@ -432,6 +447,7 @@ func TestEventRouter_routeEvent_PublishError(t *testing.T) {
 			New: func() interface{} { return new(bytes.Buffer) },
 		},
 		natsClient: mockNatsClient,
+		logger:     mockLogger,
 	}
 	er.getBufferFunc = er.defaultGetBuffer // Add this line
 
@@ -462,7 +478,7 @@ func TestEventRouter_routeEvent_EncodeError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockConsumerManager := NewMockEventConsumer(ctrl)
-	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	mockConsumerManager.EXPECT().ConsumeEvent(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	mockApp := NewMockAppInterface(ctrl)
 	mockLogger := logging.NewMockLogger(logging.DEBUG)

@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/carverauto/eventrunner/pkg/api/models"
 	"github.com/google/uuid"
+	ory "github.com/ory/client-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"gofr.dev/pkg/gofr"
 )
@@ -43,22 +44,83 @@ func (*TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
 	return tenants, err
 }
 
-type UserHandler struct{}
+type UserHandler struct {
+	OryClient *ory.APIClient
+}
 
-func (*UserHandler) Create(c *gofr.Context) (interface{}, error) {
+func (h *UserHandler) Login(c *gofr.Context) (interface{}, error) {
+	flow, _, err := h.OryClient.FrontendAPI.CreateNativeLoginFlow(c.Context).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the login flow to the client
+	return flow, nil
+}
+
+func (h *UserHandler) SubmitLogin(c *gofr.Context) (interface{}, error) {
+	var loginData ory.UpdateLoginFlowBody
+	if err := c.Bind(&loginData); err != nil {
+		return nil, err
+	}
+
+	response, _, err := h.OryClient.FrontendAPI.UpdateLoginFlow(c.Context).
+		Flow(c.Param("flow")).
+		UpdateLoginFlowBody(loginData).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the session token or redirect URL
+	return response, nil
+}
+
+/*
+func (h *UserHandler) GetUserInfo(c *gofr.Context) (interface{}, error) {
+	session, _, err := h.OryClient.FrontendAPI.ToSession(c.Context).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	traits := session.Identity.Traits.(map[string]interface{})
+	tenantID, _ := uuid.Parse(traits["tenant_id"].(string))
+	customerID, _ := uuid.Parse(traits["customer_id"].(string))
+
+	// Use these IDs for authorization or to fetch additional user data from MongoDB
+	// ...
+
+	return session.Identity, nil
+}
+*/
+
+func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
 		return nil, err
 	}
 
-	// TODO: Hash password before storing
+	// Create identity in Ory
+	identity := ory.CreateIdentityBody{
+		SchemaId: "default",
+		Traits: map[string]interface{}{
+			"email":       user.Email,
+			"tenant_id":   user.TenantID.String(),
+			"customer_id": user.CustomerID.String(),
+		},
+	}
 
-	result, err := c.Mongo.InsertOne(c, "users", user)
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
 		return nil, err
 	}
 
-	user.ID = result.(uuid.UUID)
+	// Store additional user data in MongoDB if needed
+	user.OryID = createdIdentity.Id
+	_, err = c.Mongo.InsertOne(c, "users", user)
+	if err != nil {
+		return nil, err
+	}
 
 	return user, nil
 }

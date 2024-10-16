@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/carverauto/eventrunner/cmd/eventrunner/migrations"
-	nats "github.com/carverauto/gofr-nats"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/google/uuid"
 	"gofr.dev/pkg/gofr"
@@ -22,7 +21,7 @@ import (
 
 type EventRouter struct {
 	app             AppInterface
-	natsClient      *nats.PubSubWrapper
+	natsClient      NATSClient
 	bufferPool      *sync.Pool
 	middlewares     []Middleware
 	consumerManager EventConsumer
@@ -33,7 +32,7 @@ type EventRouter struct {
 type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
-func NewEventRouter(app AppInterface, natsClient *nats.PubSubWrapper, cassandraClient *cassandraPkg.Client) *EventRouter {
+func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
 	if cassandraClient == nil {
 		// Configure Cassandra
 		cassandraConfig := cassandraPkg.Config{

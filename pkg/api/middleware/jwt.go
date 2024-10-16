@@ -17,6 +17,8 @@ type JWTMiddleware struct {
 	config   *config.OAuthConfig
 }
 
+const authorizationKey contextKey = "Authorization"
+
 // NewJWTMiddleware creates a new JWTMiddleware.
 func NewJWTMiddleware(ctx context.Context, cfg *config.OAuthConfig) (*JWTMiddleware, error) {
 	provider, err := oidc.NewProvider(ctx, cfg.KeycloakURL)
@@ -38,9 +40,8 @@ func (m *JWTMiddleware) Validate(next func(customctx.Context) (interface{}, erro
 	return func(c *gofr.Context) (interface{}, error) {
 		cc := customctx.NewCustomContext(c)
 
-		// Safely retrieve Authorization header from context
-		authHeaderValue := c.Request.Context().Value("Authorization")
-
+		// Retrieve Authorization header from the request context
+		authHeaderValue := c.Request.Context().Value(authorizationKey)
 		authHeader, ok := authHeaderValue.(string)
 		if !ok || authHeader == "" {
 			return nil, eventingest.NewAuthError("Missing or invalid authorization header")

@@ -59,8 +59,6 @@ func (r *MockRequest) Header() http.Header {
 	return r.header
 }
 
-const authorizationKey contextKey = "Authorization"
-
 func TestJWTMiddleware_Validate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -86,18 +84,16 @@ func TestJWTMiddleware_Validate(t *testing.T) {
 				req.ctx = context.WithValue(context.Background(), authorizationKey, "Bearer valid_token")
 			},
 			setupMocks: func() {
-				mockVerifier.EXPECT().Verify(gomock.Any(), "valid_token").Return(mockToken, nil).Times(1)
+				mockVerifier.EXPECT().Verify(gomock.Any(), "valid_token").Return(mockToken, nil)
 				mockToken.EXPECT().Claims(gomock.Any()).DoAndReturn(func(v interface{}) error {
-					claims := struct {
+					claims := v.(*struct {
 						TenantID   string `json:"tenant_id"`
 						CustomerID string `json:"customer_id"`
-					}{
-						TenantID:   "test-tenant-id",
-						CustomerID: "test-customer-id",
-					}
-					claimsBytes, _ := json.Marshal(claims)
-					return json.Unmarshal(claimsBytes, v)
-				}).Times(1)
+					})
+					claims.TenantID = "test-tenant-id"
+					claims.CustomerID = "test-customer-id"
+					return nil
+				})
 			},
 			expectedResult: "success",
 			expectedError:  nil,

@@ -34,11 +34,11 @@ type Buffer interface {
 type NATSClient interface {
 	Publish(ctx context.Context, topic string, message []byte) error
 	Subscribe(ctx context.Context, topic string) (*pubsub.Message, error)
-	Connect() error
+	Connect()
 	Health() datasource.Health
 	CreateTopic(ctx context.Context, name string) error
 	DeleteTopic(ctx context.Context, name string) error
-	Close(ctx context.Context) error
+	Close() error
 	UseLogger(logger any)
 	UseMetrics(metrics any)
 	UseTracer(tracer any)
@@ -51,5 +51,6 @@ type AppInterface interface {
 	Metrics() metrics.Manager
 	AddPubSub(pubsub container.PubSubProvider)
 	AddCassandra(cassandraClient container.CassandraProvider)
+	AddMongo(mongoClient container.MongoProvider)
 	Migrate(migrationsMap map[int64]migration.Migrate)
 }

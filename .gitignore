@@ -22,3 +22,8 @@ vendor/
 # IDE Cache
 .vscode
 .DS_Store
+
+# Added by me
+/k8s/robusta/generated_values.yaml
+*.crt
+*.key

@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: robusta-alerts
+  namespace: default  # Adjust if your Prometheus is in a different namespace
+spec:
+  route:
+    receiver: default-receiver
+    routes:
+    - receiver: robusta
+      group_by: ['...']
+      group_wait: 1s
+      group_interval: 1s
+      matchers:
+      - name: severity
+        matchType: =~
+        value: ".*"
+      repeat_interval: 4h
+      continue: true
+  receivers:
+  - name: default-receiver
+  - name: robusta
+    webhookConfigs:
+    - url: 'http://robusta-runner.default.svc.cluster.local/api/alerts'
+      sendResolved: true

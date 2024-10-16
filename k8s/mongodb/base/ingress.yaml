@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mongodb-ingress
+  namespace: mongo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: threadr-issuer
+    external-dns.alpha.kubernetes.io/hostname: "mongodb.tunnel.threadr.ai"
+spec:
+  tls:
+    - hosts:
+        - mongodb.tunnel.threadr.ai
+      secretName: mongodb-tls-secret
+  rules:
+    - host: mongodb.tunnel.threadr.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: er-mongodb
+                port:
+                  number: 27017

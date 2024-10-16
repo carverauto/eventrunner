@@ -1,0 +1,205 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "EventRunner API",
+    "description": "API for EventRunner, an open-source high-speed event processing engine based on the go.fr framework, NATS JetStream, Cassandra, etc.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.eventrunner.carverauto.com/v1"
+    }
+  ],
+  "paths": {
+    "/tenants": {
+      "post": {
+        "summary": "Create a new tenant",
+        "operationId": "createTenant",
+        "tags": ["Tenants"],
+        "security": [
+          {
+            "oryAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Tenant created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tenant"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "get": {
+        "summary": "Get all tenants",
+        "operationId": "getAllTenants",
+        "tags": ["Tenants"],
+        "security": [
+          {
+            "oryAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tenants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tenant"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/tenants/{tenant_id}/users": {
+      "post": {
+        "summary": "Create a new user for a tenant",
+        "operationId": "createUser",
+        "tags": ["Users"],
+        "security": [
+          {
+            "apiKey": [],
+            "roleAuth": ["admin"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient role"
+          }
+        }
+      },
+      "get": {
+        "summary": "Get all users for a tenant",
+        "operationId": "getAllUsers",
+        "tags": ["Users"],
+        "security": [
+          {
+            "apiKey": [],
+            "roleAuth": ["admin", "user"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient role"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Tenant": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["admin", "user"]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "oryAuth": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://your-ory-project.projects.oryapis.com/oauth2/auth",
+            "tokenUrl": "https://your-ory-project.projects.oryapis.com/oauth2/token",
+            "scopes": {}
+          }
+        }
+      },
+      "apiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "roleAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-User-Role"
+      }
+    }
+  }
+}
