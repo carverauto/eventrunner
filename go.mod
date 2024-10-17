@@ -5,6 +5,7 @@ go 1.23.1
 replace github.com/carverauto/gofr-nats => ../gofr-nats
 
 replace gofr.dev/pkg/gofr/datasource/cassandra => ../gofr/pkg/gofr/datasource/cassandra
+replace gofr.dev/pkg/gofr => ../gofr/pkg/gofr
 
 require (
 	github.com/carverauto/gofr-nats v0.0.0-20241002140723-936d63666b99
