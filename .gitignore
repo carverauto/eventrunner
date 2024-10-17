@@ -27,3 +27,4 @@ vendor/
 /k8s/robusta/generated_values.yaml
 *.crt
 *.key
+.env

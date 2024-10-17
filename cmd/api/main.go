@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/carverauto/eventrunner/cmd/api/migrations"
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
 	ory "github.com/ory/client-go"
@@ -19,7 +18,8 @@ func main() {
 	app.AddMongo(db)
 
 	// Run migrations
-	app.Migrate(migrations.All())
+	// TODO: enable this once it is supported by the gofr.dev team
+	// app.Migrate(migrations.All())
 
 	// Set up Ory client
 	configuration := ory.NewConfiguration()
