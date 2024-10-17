@@ -15,7 +15,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/mock v0.4.0
-	gofr.dev v1.23.0
+	gofr.dev v1.24.0
 	gofr.dev/pkg/gofr/datasource/cassandra v0.1.0
 	gofr.dev/pkg/gofr/datasource/mongo v0.2.0
 	google.golang.org/grpc v1.67.1
