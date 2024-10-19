@@ -34,7 +34,7 @@ func main() {
 		return
 	}
 
-	// Run migrations
+
 	// app.Migrate(migrations.All())
 
 	// Set up Ory client

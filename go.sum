@@ -289,6 +289,8 @@ go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN8
 go.uber.org/zap v1.18.1/go.mod h1:xg/QME4nWcxGxrpdeYfq7UvYrLh66cuVKdrbD1XF/NI=
 go.uber.org/zap v1.27.0 h1:aJMhYGrd5QSmlpLMr2MftRKl7t8J8PTZPA732ud/XR8=
 go.uber.org/zap v1.27.0/go.mod h1:GB2qFLM7cTU87MWRP2mPIjqfIDnGu+VIO4V/SdhGo2E=
+gofr.dev v1.24.0 h1:qP/Hc+hvxNkyl9iPuDi3ImOGZ0NArz1cZeYLqw/11ws=
+gofr.dev v1.24.0/go.mod h1:6omxtWaucW82wDG8QNexUGE7jAandj0xJemNwSLaHB0=
 gofr.dev/pkg/gofr/datasource/mongo v0.2.0 h1:J6rPgxF84NV+LbrfaybP6QM3oP7A2EZIcY++v4FBsEg=
 gofr.dev/pkg/gofr/datasource/mongo v0.2.0/go.mod h1:ymDX/8PxmKBDjZrpLKx/IcLLBGhRzc8whEe22Q9C7sQ=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
