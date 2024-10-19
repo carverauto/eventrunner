@@ -32,7 +32,8 @@ type EventRouter struct {
 type Middleware func(HandlerFunc) HandlerFunc
 type HandlerFunc func(*gofr.Context, *cloudevents.Event) error
 
-func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
+func NewEventRouter(
+	ctx context.Context, app AppInterface, natsClient NATSClient, cassandraClient *cassandraPkg.Client) *EventRouter {
 	if cassandraClient == nil {
 		// Configure Cassandra
 		cassandraConfig := cassandraPkg.Config{
@@ -45,7 +46,7 @@ func NewEventRouter(app AppInterface, natsClient NATSClient, cassandraClient *ca
 		cassandraClient = cassandraPkg.New(cassandraConfig)
 	}
 
-	app.AddCassandra(cassandraClient)
+	app.AddCassandra(ctx, cassandraClient)
 
 	// Add migrations to run
 	app.Migrate(migrations.All())

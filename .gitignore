@@ -25,6 +25,9 @@ vendor/
 
 # Added by me
 /k8s/robusta/generated_values.yaml
-*.crt
+
+# crypto
+*.pem
 *.key
+*.crt
 .env

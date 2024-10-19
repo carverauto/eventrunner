@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -22,7 +21,7 @@ func OryAuthMiddleware(client *ory.APIClient) func(next handlers.Handler) handle
 				return nil, NewErrorResponse(http.StatusUnauthorized, "Missing authorization token")
 			}
 
-			introspect, _, err := client.OAuth2API.IntrospectOAuth2Token(context.Background()).Token(token).Execute()
+			introspect, _, err := client.OAuth2API.IntrospectOAuth2Token(c.Context).Token(token).Execute()
 			if err != nil || !introspect.Active {
 				return nil, NewErrorResponse(http.StatusUnauthorized, "Invalid or expired token")
 			}

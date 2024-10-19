@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
+	"log"
 	"os"
 	"time"
 
+	"github.com/carverauto/eventrunner/pkg/api/auth"
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
-	ory "github.com/ory/client-go"
+	"github.com/carverauto/eventrunner/pkg/config"
+	"github.com/golang-jwt/jwt/v5"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/datasource/mongo"
 )
@@ -15,6 +19,20 @@ import (
 const (
 	dbConnectTimeout = 10 * time.Second
 )
+
+var privateKey *rsa.PrivateKey
+
+func init() {
+	// Load your private key
+	privateKeyPEM, err := os.ReadFile("./private_key.pem")
+	if err != nil {
+		log.Fatalf("Failed to read private key: %v", err)
+	}
+	privateKey, err = jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
+	if err != nil {
+		log.Fatalf("Failed to parse private key: %v", err)
+	}
+}
 
 func main() {
 	app := gofr.New()
@@ -25,10 +43,10 @@ func main() {
 	db := mongo.New(&mongo.Config{URI: "mongodb://localhost:27017", Database: "eventrunner"})
 
 	// setup a context with a timeout
-	ctx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
+	dbCtx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
 	defer cancel()
 
-	err := app.AddMongo(ctx, db)
+	err := app.AddMongo(dbCtx, db)
 	if err != nil {
 		app.Logger().Errorf("Failed to connect to MongoDB: %v", err)
 		return
@@ -38,11 +56,8 @@ func main() {
 	// app.Migrate(migrations.All())
 
 	// Set up Ory client
-	configuration := ory.NewConfiguration()
-	configuration.Servers = []ory.ServerConfiguration{
-		{URL: os.Getenv("ORY_PROJECT_URL")},
-	}
-	oryClient := ory.NewAPIClient(configuration)
+	oryConfig := config.LoadOAuthConfig(app)
+	oryClient := auth.InitializeOryClient(oryConfig, privateKey)
 
 	// Set up routes
 	tenantHandler := &handlers.TenantHandler{}
@@ -51,15 +66,14 @@ func main() {
 	// Tenant routes (protected by Ory Auth)
 	app.POST("/tenants", middleware.Adapt(tenantHandler.Create, middleware.OryAuthMiddleware(oryClient)))
 	app.GET("/tenants", middleware.Adapt(tenantHandler.GetAll, middleware.OryAuthMiddleware(oryClient)))
-
-	// User routes (protected by API key and role-based access)
-	// TODO: Add Ory Auth middleware to user routes
 	app.POST("/tenants/{tenant_id}/users", middleware.Adapt(userHandler.Create,
-		middleware.AuthenticateAPIKey,
+		middleware.OryAuthMiddleware(oryClient),
 		middleware.RequireRole("admin")))
 	app.GET("/tenants/{tenant_id}/users", middleware.Adapt(userHandler.GetAll,
-		middleware.AuthenticateAPIKey,
+		middleware.OryAuthMiddleware(oryClient),
 		middleware.RequireRole("admin", "user")))
+
+	app.GET("/auth/callback", auth.HandleOAuthCallback(oryClient))
 
 	// Run the application
 	app.Run()
