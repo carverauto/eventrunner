@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"os"
+	"time"
 
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
@@ -10,15 +12,29 @@ import (
 	"gofr.dev/pkg/gofr/datasource/mongo"
 )
 
+const (
+	dbConnectTimeout = 10 * time.Second
+)
+
 func main() {
 	app := gofr.New()
 
-	// Set up MongoDB
-	db := mongo.New(mongo.Config{URI: os.Getenv("DB_URL"), Database: os.Getenv("DB_NAME")})
-	app.AddMongo(db)
+	ctx := context.Background()
 
-	// Run migrations
-	// TODO: enable this once it is supported by the gofr.dev team
+	// Set up MongoDB
+	db := mongo.New(&mongo.Config{URI: "mongodb://localhost:27017", Database: "eventrunner"})
+
+	// setup a context with a timeout
+	ctx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
+	defer cancel()
+
+	err := app.AddMongo(ctx, db)
+	if err != nil {
+		app.Logger().Errorf("Failed to connect to MongoDB: %v", err)
+		return
+	}
+
+
 	// app.Migrate(migrations.All())
 
 	// Set up Ory client
