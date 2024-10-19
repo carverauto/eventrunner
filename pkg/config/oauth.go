@@ -5,19 +5,15 @@ import (
 )
 
 type OAuthConfig struct {
-	KeycloakURL        string
-	Realm              string
-	ClientID           string
-	ClientSecret       string
-	TokenIntrospectURL string
+	OryProjectURL string
+	ClientID      string
+	RedirectURI   string
 }
 
 func LoadOAuthConfig(app *gofr.App) *OAuthConfig {
 	return &OAuthConfig{
-		KeycloakURL:        app.Config.Get("KEYCLOAK_URL"),
-		Realm:              app.Config.Get("KEYCLOAK_REALM"),
-		ClientID:           app.Config.Get("OAUTH_CLIENT_ID"),
-		ClientSecret:       app.Config.Get("OAUTH_CLIENT_SECRET"),
-		TokenIntrospectURL: app.Config.Get("TOKEN_INTROSPECT_URL"),
+		OryProjectURL: app.Config.Get("ORY_PROJECT_URL"),
+		ClientID:      app.Config.Get("ORY_CLIENT_ID"),
+		RedirectURI:   app.Config.Get("ORY_REDIRECT_URI"),
 	}
 }

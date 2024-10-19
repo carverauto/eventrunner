@@ -12,7 +12,7 @@ import (
 
 type contextKey string
 
-const customContextKey contextKey = "customCtx"
+const CustomContextKey contextKey = "customCtx"
 
 func CustomHeadersMiddleware() gofrHTTP.Middleware {
 	return func(inner http.Handler) http.Handler {
@@ -31,7 +31,7 @@ func CustomHeadersMiddleware() gofrHTTP.Middleware {
 			}
 
 			// Create a new context with the custom context
-			ctxWithCustom := context.WithValue(r.Context(), customContextKey, customCtx)
+			ctxWithCustom := context.WithValue(r.Context(), CustomContextKey, customCtx)
 
 			// Store the custom context back into the request
 			r = r.WithContext(ctxWithCustom)

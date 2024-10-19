@@ -21,7 +21,7 @@ func TestCustomHeadersMiddleware(t *testing.T) {
 	// Create a mock final handler that will be called after the middleware
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Extract the custom context from the request context
-		customCtx, ok := r.Context().Value(customContextKey).(*customctx.CustomContext)
+		customCtx, ok := r.Context().Value(CustomContextKey).(*customctx.CustomContext)
 		if !ok {
 			t.Errorf("Failed to retrieve custom context")
 			return
