@@ -6,6 +6,10 @@ replace github.com/carverauto/gofr-nats => ../gofr-nats
 
 replace gofr.dev/pkg/gofr/datasource/cassandra => ../gofr/pkg/gofr/datasource/cassandra
 
+replace gofr.dev/pkg/gofr/datasource/mongo => ../gofr/pkg/gofr/datasource/mongo
+
+exclude github.com/carverauto/eventrunner/cmd/api v0.0.0-00010101000000-000000000000
+
 require (
 	github.com/carverauto/gofr-nats v0.0.0-20241002140723-936d63666b99
 	github.com/cloudevents/sdk-go/v2 v2.15.2
@@ -81,7 +85,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.5.3 // indirect
 	github.com/redis/go-redis/extra/redisotel/v9 v9.5.3 // indirect
-	github.com/redis/go-redis/v9 v9.6.1 // indirect
+	github.com/redis/go-redis/v9 v9.6.2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -92,7 +96,7 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.55.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.55.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.55.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
 	go.opentelemetry.io/otel v1.31.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.31.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0 // indirect

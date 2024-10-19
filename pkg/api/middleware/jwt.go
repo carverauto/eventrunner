@@ -42,6 +42,7 @@ func (m *JWTMiddleware) Validate(next func(customctx.Context) (interface{}, erro
 
 		// Retrieve Authorization header from the request context
 		authHeaderValue := c.Request.Context().Value(authorizationKey)
+
 		authHeader, ok := authHeaderValue.(string)
 		if !ok || authHeader == "" {
 			return nil, eventingest.NewAuthError("Missing or invalid authorization header")
