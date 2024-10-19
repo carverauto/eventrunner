@@ -44,6 +44,7 @@ func RequireRole(roles ...string) func(next handlers.Handler) handlers.Handler {
 	return func(next handlers.Handler) handlers.Handler {
 		return handlers.HandlerFunc(func(c *gofr.Context) (interface{}, error) {
 			cc := customctx.NewCustomContext(c)
+
 			scope, ok := cc.GetStringClaim("scope")
 			if !ok {
 				return nil, NewErrorResponse(http.StatusForbidden, "Missing scope claim")

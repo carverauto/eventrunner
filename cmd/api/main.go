@@ -25,10 +25,10 @@ func main() {
 	db := mongo.New(&mongo.Config{URI: "mongodb://localhost:27017", Database: "eventrunner"})
 
 	// setup a context with a timeout
-	ctx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
+	dbCtx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
 	defer cancel()
 
-	err := app.AddMongo(ctx, db)
+	err := app.AddMongo(dbCtx, db)
 	if err != nil {
 		app.Logger().Errorf("Failed to connect to MongoDB: %v", err)
 		return

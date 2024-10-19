@@ -50,7 +50,7 @@ type AppInterface interface {
 	Logger() logging.Logger
 	Metrics() metrics.Manager
 	AddPubSub(pubsub container.PubSubProvider)
-	AddCassandra(cassandraClient container.CassandraProvider)
-	AddMongo(mongoClient container.MongoProvider)
+	AddCassandra(ctx context.Context, cassandraClient container.CassandraProvider)
+	AddMongo(ctx context.Context, mongoClient container.MongoProvider)
 	Migrate(migrationsMap map[int64]migration.Migrate)
 }

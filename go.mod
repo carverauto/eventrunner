@@ -11,14 +11,14 @@ replace gofr.dev/pkg/gofr/datasource/mongo => ../gofr/pkg/gofr/datasource/mongo
 exclude github.com/carverauto/eventrunner/cmd/api v0.0.0-00010101000000-000000000000
 
 require (
-	github.com/carverauto/gofr-nats v0.0.0-20241002140723-936d63666b99
+	github.com/carverauto/gofr-nats v0.0.0-20241018214153-2eafbcb9f670
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/google/uuid v1.6.0
 	github.com/ory/client-go v1.15.6
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.17.1
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	gofr.dev v1.23.0
 	gofr.dev/pkg/gofr/datasource/cassandra v0.1.0
 	gofr.dev/pkg/gofr/datasource/mongo v0.2.0
