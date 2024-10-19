@@ -3,12 +3,17 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
 	ory "github.com/ory/client-go"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/datasource/mongo"
+)
+
+const (
+	dbConnectTimeout = 10 * time.Second
 )
 
 func main() {
@@ -18,8 +23,14 @@ func main() {
 
 	// Set up MongoDB
 	db := mongo.New(&mongo.Config{URI: "mongodb://localhost:27017", Database: "eventrunner"})
+
+	// setup a context with a timeout
+	ctx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
+	defer cancel()
+
 	err := app.AddMongo(ctx, db)
 	if err != nil {
+		app.Logger().Errorf("Failed to connect to MongoDB: %v", err)
 		return
 	}
 
