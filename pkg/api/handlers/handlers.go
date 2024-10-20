@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -29,8 +28,32 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewInvalidParamError("user data")
 	}
 
-	// Generate a new UUID for the tenant_id
-	tenantID := uuid.New()
+	// Check if this is the first user
+	var existingUsers []models.User
+	err := c.Mongo.Find(c, "users", bson.M{}, &existingUsers)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to query users")
+	}
+
+	if len(existingUsers) > 0 {
+		return nil, errors.NewAppError(409, "Superuser already exists")
+	}
+
+	// Generate a new UUID for the default tenant
+	defaultTenantID := uuid.New()
+
+	// Create default tenant
+	defaultTenant := models.Tenant{
+		TenantID:  defaultTenantID,
+		Name:      "Default Tenant",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	_, err = c.Mongo.InsertOne(c, "tenants", defaultTenant)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to insert default tenant")
+	}
 
 	// Create identity in Ory
 	identity := ory.CreateIdentityBody{
@@ -38,13 +61,9 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 		Traits: map[string]interface{}{
 			"email":     user.Email,
 			"roles":     []string{"superuser"},
-			"tenant_id": tenantID.String(),
+			"tenant_id": defaultTenantID.String(), // We still need to include a primary tenant_id
 		},
 	}
-
-	// Debug logging
-	payloadBytes, _ := json.MarshalIndent(identity, "", "  ")
-	fmt.Printf("Payload being sent to Ory:\n%s\n", string(payloadBytes))
 
 	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
@@ -54,7 +73,7 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 	// Create user in MongoDB
 	user.UserID = uuid.New()
 	user.OryID = createdIdentity.Id
-	user.TenantID = tenantID
+	user.TenantIDs = []uuid.UUID{defaultTenantID}
 	user.Roles = []string{"superuser"}
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
@@ -78,7 +97,8 @@ func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	if claims["role"] != "superuser" {
+	roles, ok := claims["roles"].([]interface{})
+	if !ok || !containsRole(roles, "superuser") {
 		return nil, errors.NewForbiddenError("Only superuser can create tenants")
 	}
 
@@ -91,7 +111,25 @@ func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewDatabaseError(err, "Failed to insert tenant into database")
 	}
 
+	// Update the superuser's tenants
+	userID, _ := uuid.Parse(claims["sub"].(string))
+	err = c.Mongo.UpdateOne(c, "users",
+		bson.M{"user_id": userID},
+		bson.M{"$addToSet": bson.M{"tenant_ids": tenant.TenantID}})
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to update user's tenants")
+	}
+
 	return tenant, nil
+}
+
+func containsRole(roles []interface{}, role string) bool {
+	for _, r := range roles {
+		if r.(string) == role {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
@@ -106,25 +144,37 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 	}
 
 	// Check if the requester has the right to create users
-	requesterRole := claims["role"].(string)
-	if requesterRole != "superuser" && requesterRole != "tenant_admin" {
+	requesterRoles, ok := claims["roles"].([]interface{})
+	if !ok {
+		return nil, errors.NewForbiddenError("Invalid role data")
+	}
+
+	isSuperuser := containsRole(requesterRoles, "superuser")
+	isTenantAdmin := containsRole(requesterRoles, "tenant_admin")
+
+	if !isSuperuser && !isTenantAdmin {
 		return nil, errors.NewForbiddenError("Insufficient permissions to create user")
 	}
 
-	// Use claims to set user data
-	tenantID, ok := claims["tenantId"].(string)
-	if !ok {
-		return nil, errors.NewMissingParamError("tenantId")
+	// Get the tenant ID from the request
+	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+	if err != nil {
+		return nil, errors.NewInvalidParamError("tenant_id")
 	}
-	user.TenantID, _ = uuid.Parse(tenantID)
+
+	// Verify that the requester has access to this tenant
+	requesterTenantIDs, ok := claims["tenant_ids"].([]interface{})
+	if !ok || !containsTenantID(requesterTenantIDs, tenantID) {
+		return nil, errors.NewForbiddenError("You don't have access to this tenant")
+	}
 
 	// Create identity in Ory
 	identity := ory.CreateIdentityBody{
 		SchemaId: os.Getenv("ORY_SCHEMA_ID"),
 		Traits: map[string]interface{}{
-			"email":    user.Email,
-			"role":     user.Roles[0], // Assuming the first role is the primary role
-			"tenantId": user.TenantID.String(),
+			"email":     user.Email,
+			"roles":     user.Roles,
+			"tenant_id": tenantID.String(), // We still need to include a primary tenant_id for Ory
 		},
 	}
 
@@ -136,6 +186,7 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 	// Create user in MongoDB
 	user.UserID = uuid.New()
 	user.OryID = createdIdentity.Id
+	user.TenantIDs = []uuid.UUID{tenantID}
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
@@ -145,6 +196,15 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 	}
 
 	return user, nil
+}
+
+func containsTenantID(tenantIDs []interface{}, tenantID uuid.UUID) bool {
+	for _, id := range tenantIDs {
+		if id.(string) == tenantID.String() {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *Handlers) GetAllUsers(c *gofr.Context) (interface{}, error) {

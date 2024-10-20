@@ -41,7 +41,6 @@ func main() {
 	oryClient.Servers = ory.ServerConfigurations{{URL: os.Getenv("ORY_SDK_URL")}}
 	oryClient.DefaultHeader["Authorization"] = "Bearer " + os.Getenv("ORY_PAT")
 
-
 	apiClient := ory.NewAPIClient(oryClient)
 
 	// Initialize handlers
@@ -51,7 +50,6 @@ func main() {
 	app.EnableOAuth(os.Getenv("JWKS_SERVER"), 20)
 
 	// Set up routes
-	app.POST("/superuser", h.CreateSuperUser)
 	app.POST("/tenants", middleware.Adapt(h.CreateTenant, middleware.RequireRole("superuser")))
 	app.POST("/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
 	app.GET("/tenants/{tenant_id}/users", middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser", "tenant_admin")))

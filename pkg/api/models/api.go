@@ -31,7 +31,7 @@ type User struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
 	OryID      string             `bson:"ory_id" json:"ory_id"`
 	UserID     uuid.UUID          `bson:"user_id" json:"user_id"`
-	TenantID   uuid.UUID          `bson:"tenant_id" json:"tenant_id,omitempty"`
+	TenantIDs  []uuid.UUID        `bson:"tenant_ids" json:"tenant_ids"`
 	CustomerID uuid.UUID          `bson:"customer_id" json:"customer_id,omitempty"`
 	Username   string             `bson:"username" json:"username"`
 	Email      string             `bson:"email" json:"email"`
