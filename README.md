@@ -74,9 +74,9 @@ To consume events:
 
 ## WebAssembly Integration with wasmCloud
 
-Our system supports the creation and execution of polyglot WebAssembly (Wasm) applications as event consumers using wasmCloud. This allows you to write event processing logic in various languages and run it in a secure, sandboxed environment.
+Our system supports the creation and execution of polyglot WebAssembly (WASM) applications as event consumers using wasmCloud. This allows you to write event processing logic in various languages and run it in a secure, sandboxed environment.
 
-### Creating a Wasm Event Consumer
+### Creating a WASM Event Consumer
 
 1. Write your event consumer logic in your preferred language (e.g., Rust, Go, AssemblyScript).
 2. Compile your code to WebAssembly targeting the wasmCloud ABI.
