@@ -50,8 +50,8 @@ func main() {
 	app.EnableOAuth(os.Getenv("JWKS_SERVER"), 20)
 
 	// Set up routes
-	app.POST("/tenants", middleware.Adapt(h.CreateTenant, middleware.RequireRole("superuser")))
 	app.POST("/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
+	app.POST("/tenants/:tenant_id/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
 	app.GET("/tenants/{tenant_id}/users", middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser", "tenant_admin")))
 
 	// Run the application

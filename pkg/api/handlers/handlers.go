@@ -8,6 +8,7 @@ import (
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
 	"github.com/carverauto/eventrunner/pkg/api/models"
 	"github.com/carverauto/eventrunner/pkg/errors"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	ory "github.com/ory/client-go"
 	"go.mongodb.org/mongo-driver/bson"
@@ -44,6 +45,7 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 
 	// Create default tenant
 	defaultTenant := models.Tenant{
+		ID:        uuid.New(),
 		TenantID:  defaultTenantID,
 		Name:      "Default Tenant",
 		CreatedAt: time.Now(),
@@ -61,7 +63,7 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 		Traits: map[string]interface{}{
 			"email":     user.Email,
 			"roles":     []string{"superuser"},
-			"tenant_id": defaultTenantID.String(), // We still need to include a primary tenant_id
+			"tenant_id": defaultTenantID.String(),
 		},
 	}
 
@@ -83,7 +85,10 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewDatabaseError(err, "Failed to insert user into database")
 	}
 
-	return user, nil
+	return map[string]interface{}{
+		"user":   user,
+		"tenant": defaultTenant,
+	}, nil
 }
 
 func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
@@ -220,4 +225,96 @@ func (h *Handlers) GetAllUsers(c *gofr.Context) (interface{}, error) {
 	}
 
 	return users, nil
+}
+
+func (h *Handlers) Login(c *gofr.Context) (interface{}, error) {
+	type LoginRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	var loginReq LoginRequest
+	if err := c.Bind(&loginReq); err != nil {
+		return nil, errors.NewInvalidParamError("login data")
+	}
+
+	// Create a login flow
+	flow, _, err := h.OryClient.FrontendAPI.CreateNativeLoginFlow(c.Context).Execute()
+	if err != nil {
+		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create login flow: %v", err))
+	}
+
+	// Prepare the update login flow body
+	updateLoginFlowBody := ory.UpdateLoginFlowBody{
+		UpdateLoginFlowWithPasswordMethod: &ory.UpdateLoginFlowWithPasswordMethod{
+			Password:   loginReq.Password,
+			Identifier: loginReq.Email,
+			Method:     "password",
+		},
+	}
+
+	// Update the login flow
+	resp, _, err := h.OryClient.FrontendAPI.UpdateLoginFlow(c.Context).
+		Flow(flow.Id).
+		UpdateLoginFlowBody(updateLoginFlowBody).
+		Execute()
+
+	if err != nil {
+		return nil, errors.NewUnauthorizedError("Invalid credentials")
+	}
+
+	// Check if the login was successful
+	if resp.Session.Identity == nil {
+		return nil, errors.NewUnauthorizedError("Login failed")
+	}
+
+	// Extract user information from Ory identity traits
+	traits, ok := resp.Session.Identity.Traits.(map[string]interface{})
+	if !ok {
+		return nil, errors.NewAppError(500, "Failed to parse identity traits")
+	}
+
+	email, _ := traits["email"].(string)
+	roles, _ := traits["roles"].([]interface{})
+	tenantIDs, _ := traits["tenant_ids"].([]interface{})
+	customerID, _ := traits["customer_id"].(string)
+
+	// Convert roles to []string
+	stringRoles := make([]string, len(roles))
+	for i, role := range roles {
+		stringRoles[i], _ = role.(string)
+	}
+
+	// Convert tenant_ids to []string
+	stringTenantIDs := make([]string, len(tenantIDs))
+	for i, id := range tenantIDs {
+		stringTenantIDs[i], _ = id.(string)
+	}
+
+	// Generate JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":         resp.Session.Identity.Id,
+		"email":       email,
+		"roles":       stringRoles,
+		"tenant_ids":  stringTenantIDs,
+		"customer_id": customerID,
+		"exp":         time.Now().Add(time.Hour * 24 * 30).Unix(), // 30 days expiration
+	})
+
+	// Sign and get the complete encoded token as a string
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return nil, errors.NewAppError(500, "Failed to generate token")
+	}
+
+	response := map[string]interface{}{
+		"token": tokenString,
+	}
+
+	// Only include session_token if it's not nil
+	if resp.SessionToken != nil {
+		response["session_token"] = *resp.SessionToken
+	}
+
+	return response, nil
 }
