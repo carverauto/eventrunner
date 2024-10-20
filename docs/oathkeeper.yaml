@@ -1,0 +1,43 @@
+# oathkeeper.yaml
+access_rules:
+  # Rule for API authentication
+  - id: "api-rule"
+    upstream:
+      url: "http://my-api-backend"
+    match:
+      url: "http://<my-api-domain>/api/<**>"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+    authenticators:
+      - handler: oauth2_introspection
+        config:
+          introspection_url: "http://<ory-hydra-admin-url>/oauth2/introspect"
+          scope_strategy: exact
+    authorizer:
+      handler: allow
+    mutators:
+      - handler: header
+        config:
+          headers:
+            X-User: "{{ print .Subject }}"
+            X-Tenant-ID: "{{ print .Extra.tenant_id }}"
+            X-Roles: "{{ print .Extra.roles }}"
+
+  # Rule for web application authentication (if needed)
+  - id: "web-app-rule"
+    upstream:
+      url: "http://my-web-app-backend"
+    match:
+      url: "http://<my-web-domain>/<**>"
+      methods:
+        - GET
+        - POST
+    authenticators:
+      - handler: cookie_session
+    authorizer:
+      handler: allow
+    mutators:
+      - handler: noop
