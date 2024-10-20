@@ -19,6 +19,9 @@ graph TD
     G -->|CDC| H[(ClickHouse)]
     F -->|Rule Processing| I[Grule Rule Engine]
     I -->|Rule Results| F
+    E -->|Tenant-Specific Events| J[Tenant Event Streams]
+    J -->|Events| K[wasmCloud Runtime]
+    K -->|Processed Data| L[Tenant-Specific Outputs]
 
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style C fill:#f9f,stroke:#333,stroke-width:2px
@@ -27,6 +30,7 @@ graph TD
     style G fill:#ff9,stroke:#333,stroke-width:2px
     style H fill:#f96,stroke:#333,stroke-width:2px
     style I fill:#9bf,stroke:#333,stroke-width:2px
+    style K fill:#fcf,stroke:#333,stroke-width:2px
 ```
 
 ## Components
@@ -45,6 +49,10 @@ graph TD
 
 **ClickHouse**: Column-oriented DBMS for real-time analytics, fed by Scylla's Change Data Capture (CDC).
 
+**Tenant Event Streams**: NATS JetStream subjects for tenant-specific event distribution.
+
+**wasmCloud Runtime**: Secure runtime environment for executing WebAssembly modules as tenant-specific event consumers.
+
 ## Key Features
 
 * High-throughput event ingestion via HTTP and gRPC
@@ -53,6 +61,58 @@ graph TD
 * Powerful rule-based processing using the Grule Rule Engine
 * Durable storage with Scylla DB
 * Real-time analytics capabilities with ClickHouse
+* Tenant-specific event streaming and processing
+* Secure, polyglot event consumer execution using WebAssembly and wasmCloud
+
+## Event Streaming for Consumers
+Consumers can listen to tenant-specific event streams using NATS JetStream subjects. Each tenant is assigned a unique subject, allowing for isolated and secure event consumption.
+
+To consume events:
+
+1. Authenticate with the event-ingest service using your tenant credentials.
+2. Process incoming events according to your business logic.
+
+## WebAssembly Integration with wasmCloud
+
+Our system supports the creation and execution of polyglot WebAssembly (Wasm) applications as event consumers using wasmCloud. This allows you to write event processing logic in various languages and run it in a secure, sandboxed environment.
+
+### Creating a Wasm Event Consumer
+
+1. Write your event consumer logic in your preferred language (e.g., Rust, Go, AssemblyScript).
+2. Compile your code to WebAssembly targeting the wasmCloud ABI.
+3. Sign your WASM module with the appropriate capabilities for event processing.
+
+```rust
+use wasmbus_rpc::actor::prelude::*;
+use wasmcloud_interface_messaging::*;
+
+#[derive(Actor, MessageDispatch)]
+#[services(Actor, MessageSubscriber)]
+struct EventConsumer;
+
+#[async_trait]
+impl MessageSubscriber for EventConsumer {
+    async fn handle_message(&self, ctx: &Context, msg: &DeliverMessage) -> RpcResult<()> {
+        // Process the event
+        println!("Received event: {:?}", msg.body);
+        Ok(())
+    }
+}
+```
+
+### Deploying WASM Consumers
+
+1. Upload your signed WASM module to the wasmCloud control interface.
+2. Configure the necessary links to connect your module to the NATS event stream.
+3. Start your WASM module, which will begin consuming events from your tenant-specific subject.
+
+The wasmCloud runtime ensures that your Wasm modules run in a secure, isolated environment with controlled access to resources.
+
+#### Security Considerations
+
+* Tenant isolation is enforced through NATS subject naming and authentication.
+* WASM modules run in sandboxed environments with limited capabilities.
+* All communication between components is encrypted and authenticated.
 
 ## Getting Started
 
