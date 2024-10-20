@@ -1,0 +1,7 @@
+auth:
+  enabled: true
+  existingSecret: mongodb-auth-secret
+  replicaSetKey: mongodb-replica-set-secret
+
+tls:
+  enabled: false

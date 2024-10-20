@@ -41,6 +41,7 @@ func main() {
 	oryClient.Servers = ory.ServerConfigurations{{URL: os.Getenv("ORY_SDK_URL")}}
 	oryClient.DefaultHeader["Authorization"] = "Bearer " + os.Getenv("ORY_PAT")
 
+
 	apiClient := ory.NewAPIClient(oryClient)
 
 	// Initialize handlers

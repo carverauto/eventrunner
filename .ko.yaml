@@ -1,0 +1,12 @@
+builds:
+  - id: eventrunner-api
+    defaultBaseImage: ghcr.io/carverauto/eventrunner-base:v1
+    dir: ./cmd/api
+    main: .  
+    env:
+      - GOCACHE=/workspace/.gocache
+    ldflags:
+      - -X main.version={{.Env.VERSION}}
+defaultPlatforms:
+  - linux/amd64
+buildIdChunk: "{{.Env.GIT_SHA}}"
