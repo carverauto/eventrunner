@@ -1,3 +1,5 @@
+// File: main.go
+
 package main
 
 import (
@@ -7,6 +9,7 @@ import (
 
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
+	ory "github.com/ory/client-go"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/datasource/mongo"
 )
@@ -33,21 +36,24 @@ func main() {
 		return
 	}
 
+	// Initialize Ory client
+	oryClient := ory.NewConfiguration()
+	oryClient.Servers = ory.ServerConfigurations{{URL: os.Getenv("ORY_SDK_URL")}}
+	oryClient.DefaultHeader["Authorization"] = "Bearer " + os.Getenv("ORY_PAT")
+
+	apiClient := ory.NewAPIClient(oryClient)
+
+	// Initialize handlers
+	h := handlers.NewHandlers(apiClient)
+
 	// Enable OAuth
 	app.EnableOAuth(os.Getenv("JWKS_SERVER"), 20)
 
 	// Set up routes
-	tenantHandler := &handlers.TenantHandler{}
-	userHandler := &handlers.UserHandler{}
-
-	// Tenant routes (protected by OAuth)
-	app.POST("/tenants", middleware.Adapt(tenantHandler.Create, middleware.RequireRole("admin")))
-	app.GET("/tenants", middleware.Adapt(tenantHandler.GetAll, middleware.RequireRole("admin", "user")))
-	app.POST("/tenants/{tenant_id}/users", middleware.Adapt(userHandler.Create, middleware.RequireRole("admin")))
-	app.GET("/tenants/{tenant_id}/users", middleware.Adapt(userHandler.GetAll, middleware.RequireRole("admin", "user")))
-
-	app.POST("/superuser", userHandler.CreateSuperUser)
-	app.POST("/users", userHandler.CreateUser)
+	app.POST("/superuser", h.CreateSuperUser)
+	app.POST("/tenants", middleware.Adapt(h.CreateTenant, middleware.RequireRole("superuser")))
+	app.POST("/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
+	app.GET("/tenants/{tenant_id}/users", middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser", "tenant_admin")))
 
 	// Run the application
 	app.Run()

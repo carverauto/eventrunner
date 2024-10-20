@@ -1,149 +1,166 @@
+// File: handlers/handlers.go
+
 package handlers
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/carverauto/eventrunner/pkg/api/middleware"
 	"github.com/carverauto/eventrunner/pkg/api/models"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/carverauto/eventrunner/pkg/errors"
 	"github.com/google/uuid"
+	ory "github.com/ory/client-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"gofr.dev/pkg/gofr"
-	"gofr.dev/pkg/gofr/http/middleware"
 )
 
-type TenantHandler struct{}
-
-// HandlerFunc is an adapter to allow the use of ordinary functions as Handlers.
-type HandlerFunc func(*gofr.Context) (interface{}, error)
-
-// Handle calls f(c).
-func (f HandlerFunc) Handle(c *gofr.Context) (interface{}, error) {
-	return f(c)
+type Handlers struct {
+	OryClient *ory.APIClient
 }
 
-// Middleware defines the standard middleware signature.
-type Middleware func(Handler) Handler
+func NewHandlers(oryClient *ory.APIClient) *Handlers {
+	return &Handlers{OryClient: oryClient}
+}
 
-func (*TenantHandler) Create(c *gofr.Context) (interface{}, error) {
+func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
+	var user models.User
+	if err := c.Bind(&user); err != nil {
+		return nil, errors.NewInvalidParamError("user data")
+	}
+
+	// Check if this is the first user
+	var existingUsers []models.User
+	err := c.Mongo.Find(c, "users", bson.M{}, &existingUsers)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to query users")
+	}
+
+	if len(existingUsers) > 0 {
+		return nil, errors.NewAppError(409, "Superuser already exists")
+	}
+
+	// Create identity in Ory
+	identity := ory.CreateIdentityBody{
+		SchemaId: "preset://email",
+		Traits: map[string]interface{}{
+			"email": user.Email,
+			"role":  "superuser",
+		},
+	}
+
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(context.Background()).CreateIdentityBody(identity).Execute()
+	if err != nil {
+		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create identity in Ory: %v", err))
+	}
+
+	// Create user in MongoDB
+	user.UserID = uuid.New()
+	user.OryID = createdIdentity.Id
+	user.Roles = []string{"superuser"}
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
+	_, err = c.Mongo.InsertOne(c, "users", user)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to insert user into database")
+	}
+
+	return user, nil
+}
+
+func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 	var tenant models.Tenant
 	if err := c.Bind(&tenant); err != nil {
+		return nil, errors.NewInvalidParamError("tenant data")
+	}
+
+	claims, err := middleware.GetJWTClaims(c)
+	if err != nil {
 		return nil, err
+	}
+
+	if claims["role"] != "superuser" {
+		return nil, errors.NewForbiddenError("Only superuser can create tenants")
 	}
 
 	tenant.TenantID = uuid.New()
 	tenant.CreatedAt = time.Now()
 	tenant.UpdatedAt = time.Now()
 
-	_, err := c.Mongo.InsertOne(c, "tenants", tenant)
+	_, err = c.Mongo.InsertOne(c, "tenants", tenant)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDatabaseError(err, "Failed to insert tenant into database")
 	}
 
 	return tenant, nil
 }
 
-func (*TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
-	var tenants []models.Tenant
-	err := c.Mongo.Find(c, "tenants", bson.M{}, &tenants)
-
-	return tenants, err
-}
-
-type UserHandler struct{}
-
-func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
+func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
+		return nil, errors.NewInvalidParamError("user data")
+	}
+
+	claims, err := middleware.GetJWTClaims(c)
+	if err != nil {
 		return nil, err
 	}
 
-	// Retrieve JWT claims
-	claimData := c.Context.Value(middleware.JWTClaim)
-	claims, ok := claimData.(jwt.MapClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid claim data type")
+	// Check if the requester has the right to create users
+	requesterRole := claims["role"].(string)
+	if requesterRole != "superuser" && requesterRole != "tenant_admin" {
+		return nil, errors.NewForbiddenError("Insufficient permissions to create user")
 	}
 
 	// Use claims to set user data
-	if tenantID, ok := claims["tenant_id"].(string); ok {
-		user.TenantID, _ = uuid.Parse(tenantID)
+	tenantID, ok := claims["tenantId"].(string)
+	if !ok {
+		return nil, errors.NewMissingParamError("tenantId")
 	}
-	if customerID, ok := claims["customer_id"].(string); ok {
-		user.CustomerID, _ = uuid.Parse(customerID)
+	user.TenantID, _ = uuid.Parse(tenantID)
+
+	// Create identity in Ory
+	identity := ory.CreateIdentityBody{
+		SchemaId: "preset://email",
+		Traits: map[string]interface{}{
+			"email":    user.Email,
+			"role":     user.Roles[0], // Assuming the first role is the primary role
+			"tenantId": user.TenantID.String(),
+		},
 	}
 
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(context.Background()).CreateIdentityBody(identity).Execute()
+	if err != nil {
+		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create identity in Ory: %v", err))
+	}
+
+	// Create user in MongoDB
 	user.UserID = uuid.New()
+	user.OryID = createdIdentity.Id
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
-	_, err := c.Mongo.InsertOne(c, "users", user)
+	_, err = c.Mongo.InsertOne(c, "users", user)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDatabaseError(err, "Failed to insert user into database")
 	}
 
 	return user, nil
 }
 
-func (*UserHandler) GetAll(c *gofr.Context) (interface{}, error) {
+func (h *Handlers) GetAllUsers(c *gofr.Context) (interface{}, error) {
 	tenantID, err := uuid.Parse(c.Param("tenant_id"))
 	if err != nil {
-		return nil, err
+		return nil, errors.NewInvalidParamError("tenant_id")
 	}
 
 	var users []models.User
 	err = c.Mongo.Find(c, "users", bson.M{"tenant_id": tenantID}, &users)
-
-	return users, err
-}
-
-func (h *UserHandler) CreateSuperUser(c *gofr.Context) (interface{}, error) {
-	var user models.User
-	if err := c.Bind(&user); err != nil {
-		return nil, err
-	}
-
-	// Create user in Ory Hydra (pseudo-code)
-	hydraUser, err := h.hydraClient.CreateUser(user.Email, user.Password)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDatabaseError(err, "Failed to fetch users from database")
 	}
 
-	// Create user in MongoDB
-	user.UserID = hydraUser.ID
-	user.Roles = []string{"superuser"}
-	result, err := c.Mongo.InsertOne(c, "users", user)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func (h *UserHandler) CreateUser(c *gofr.Context) (interface{}, error) {
-	// Check if the requester is a superuser
-	if !isSuperUser(c) {
-		return nil, errors.New("unauthorized")
-	}
-
-	var user models.User
-	if err := c.Bind(&user); err != nil {
-		return nil, err
-	}
-
-	// Create user in Ory Hydra (pseudo-code)
-	hydraUser, err := h.hydraClient.CreateUser(user.Email, user.Password)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create user in MongoDB
-	user.UserID = hydraUser.ID
-	result, err := c.Mongo.InsertOne(c, "users", user)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return users, nil
 }
