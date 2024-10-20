@@ -1,138 +1,164 @@
 package handlers
 
 import (
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/carverauto/eventrunner/pkg/api/middleware"
 	"github.com/carverauto/eventrunner/pkg/api/models"
+	"github.com/carverauto/eventrunner/pkg/errors"
 	"github.com/google/uuid"
 	ory "github.com/ory/client-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"gofr.dev/pkg/gofr"
 )
 
-type TenantHandler struct{}
-
-// HandlerFunc is an adapter to allow the use of ordinary functions as Handlers.
-type HandlerFunc func(*gofr.Context) (interface{}, error)
-
-// Handle calls f(c).
-func (f HandlerFunc) Handle(c *gofr.Context) (interface{}, error) {
-	return f(c)
-}
-
-// Middleware defines the standard middleware signature.
-type Middleware func(Handler) Handler
-
-func (*TenantHandler) Create(c *gofr.Context) (models.Tenant, error) {
-	var tenant models.Tenant
-	if err := c.Bind(&tenant); err != nil {
-		return models.Tenant{}, err
-	}
-
-	result, err := c.Mongo.InsertOne(c, "tenants", tenant)
-	if err != nil {
-		return models.Tenant{}, err
-	}
-
-	tenant.ID = result.(uuid.UUID)
-
-	return tenant, nil
-}
-
-func (*TenantHandler) GetAll(c *gofr.Context) (interface{}, error) {
-	var tenants []models.Tenant
-	err := c.Mongo.Find(c, "tenants", bson.M{}, &tenants)
-
-	return tenants, err
-}
-
-type UserHandler struct {
+type Handlers struct {
 	OryClient *ory.APIClient
 }
 
-func (h *UserHandler) Login(c *gofr.Context) (interface{}, error) {
-	flow, _, err := h.OryClient.FrontendAPI.CreateNativeLoginFlow(c.Context).Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	// Return the login flow to the client
-	return flow, nil
+func NewHandlers(oryClient *ory.APIClient) *Handlers {
+	return &Handlers{OryClient: oryClient}
 }
 
-func (h *UserHandler) SubmitLogin(c *gofr.Context) (interface{}, error) {
-	var loginData ory.UpdateLoginFlowBody
-	if err := c.Bind(&loginData); err != nil {
-		return nil, err
-	}
-
-	response, _, err := h.OryClient.FrontendAPI.UpdateLoginFlow(c.Context).
-		Flow(c.Param("flow")).
-		UpdateLoginFlowBody(loginData).
-		Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	// Return the session token or redirect URL
-	return response, nil
-}
-
-/*
-func (h *UserHandler) GetUserInfo(c *gofr.Context) (interface{}, error) {
-	session, _, err := h.OryClient.FrontendAPI.ToSession(c.Context).Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	traits := session.Identity.Traits.(map[string]interface{})
-	tenantID, _ := uuid.Parse(traits["tenant_id"].(string))
-	customerID, _ := uuid.Parse(traits["customer_id"].(string))
-
-	// Use these IDs for authorization or to fetch additional user data from MongoDB
-	// ...
-
-	return session.Identity, nil
-}
-*/
-
-func (h *UserHandler) Create(c *gofr.Context) (interface{}, error) {
+func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {
-		return nil, err
+		return nil, errors.NewInvalidParamError("user data")
+	}
+
+	// Check if this is the first user
+	var existingUsers []models.User
+	err := c.Mongo.Find(c, "users", bson.M{}, &existingUsers)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to query users")
+	}
+
+	if len(existingUsers) > 0 {
+		return nil, errors.NewAppError(409, "Superuser already exists")
 	}
 
 	// Create identity in Ory
 	identity := ory.CreateIdentityBody{
-		SchemaId: "default",
+		SchemaId: os.Getenv("ORY_SCHEMA_ID"),
 		Traits: map[string]interface{}{
-			"email":       user.Email,
-			"tenant_id":   user.TenantID.String(),
-			"customer_id": user.CustomerID.String(),
+			"email": user.Email,
+			"role":  "superuser",
 		},
 	}
 
 	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create identity in Ory: %v", err))
 	}
 
-	// Store additional user data in MongoDB if needed
+	// Create user in MongoDB
+	user.UserID = uuid.New()
 	user.OryID = createdIdentity.Id
+	user.Roles = []string{"superuser"}
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
 	_, err = c.Mongo.InsertOne(c, "users", user)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewDatabaseError(err, "Failed to insert user into database")
 	}
 
 	return user, nil
 }
 
-func (*UserHandler) GetAll(c *gofr.Context) (interface{}, error) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
+	var tenant models.Tenant
+	if err := c.Bind(&tenant); err != nil {
+		return nil, errors.NewInvalidParamError("tenant data")
+	}
+
+	claims, err := middleware.GetJWTClaims(c)
 	if err != nil {
 		return nil, err
 	}
 
+	if claims["role"] != "superuser" {
+		return nil, errors.NewForbiddenError("Only superuser can create tenants")
+	}
+
+	tenant.TenantID = uuid.New()
+	tenant.CreatedAt = time.Now()
+	tenant.UpdatedAt = time.Now()
+
+	_, err = c.Mongo.InsertOne(c, "tenants", tenant)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to insert tenant into database")
+	}
+
+	return tenant, nil
+}
+
+func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
+	var user models.User
+	if err := c.Bind(&user); err != nil {
+		return nil, errors.NewInvalidParamError("user data")
+	}
+
+	claims, err := middleware.GetJWTClaims(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if the requester has the right to create users
+	requesterRole := claims["role"].(string)
+	if requesterRole != "superuser" && requesterRole != "tenant_admin" {
+		return nil, errors.NewForbiddenError("Insufficient permissions to create user")
+	}
+
+	// Use claims to set user data
+	tenantID, ok := claims["tenantId"].(string)
+	if !ok {
+		return nil, errors.NewMissingParamError("tenantId")
+	}
+	user.TenantID, _ = uuid.Parse(tenantID)
+
+	// Create identity in Ory
+	identity := ory.CreateIdentityBody{
+		SchemaId: os.Getenv("ORY_SCHEMA_ID"),
+		Traits: map[string]interface{}{
+			"email":    user.Email,
+			"role":     user.Roles[0], // Assuming the first role is the primary role
+			"tenantId": user.TenantID.String(),
+		},
+	}
+
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
+	if err != nil {
+		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create identity in Ory: %v", err))
+	}
+
+	// Create user in MongoDB
+	user.UserID = uuid.New()
+	user.OryID = createdIdentity.Id
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
+	_, err = c.Mongo.InsertOne(c, "users", user)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to insert user into database")
+	}
+
+	return user, nil
+}
+
+func (h *Handlers) GetAllUsers(c *gofr.Context) (interface{}, error) {
+	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+	if err != nil {
+		return nil, errors.NewInvalidParamError("tenant_id")
+	}
+
 	var users []models.User
 	err = c.Mongo.Find(c, "users", bson.M{"tenant_id": tenantID}, &users)
+	if err != nil {
+		return nil, errors.NewDatabaseError(err, "Failed to fetch users from database")
+	}
 
-	return users, err
+	return users, nil
 }

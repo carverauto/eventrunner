@@ -8,7 +8,8 @@ import (
 )
 
 type Tenant struct {
-	ID        uuid.UUID   `bson:"_id,omitempty" json:"id,omitempty"`
+	ID        uuid.UUID   `bson:"_id,omitempty" json:"-"`
+	TenantID  uuid.UUID   `bson:"tenant_id" json:"id"`
 	Name      string      `bson:"name" json:"name"`
 	Customers []uuid.UUID `bson:"customers" json:"customers"`
 	CreatedAt time.Time   `bson:"created_at" json:"created_at"`
@@ -17,23 +18,24 @@ type Tenant struct {
 }
 
 type Customer struct {
-	ID        uuid.UUID `bson:"_id,omitempty" json:"id,omitempty"`
-	TenantID  uuid.UUID `bson:"tenant_id" json:"tenant_id"`
-	Name      string    `bson:"name" json:"name"`
-	CreatedAt time.Time `bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time `bson:"updated_at" json:"updated_at"`
-	Active    bool      `bson:"active" json:"active"`
+	ID         uuid.UUID `bson:"_id,omitempty" json:"-"`
+	CustomerID uuid.UUID `bson:"customer_id" json:"id"`
+	TenantID   uuid.UUID `bson:"tenant_id" json:"tenant_id"`
+	Name       string    `bson:"name" json:"name"`
+	CreatedAt  time.Time `bson:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `bson:"updated_at" json:"updated_at"`
+	Active     bool      `bson:"active" json:"active"`
 }
 
 type User struct {
-	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
-	OryID      string             `bson:"ory_id,omitempty" json:"ory_id,omitempty"`
-	TenantID   uuid.UUID          `bson:"tenant_id" json:"tenant_id"`
-	CustomerID uuid.UUID          `bson:"customer_id" json:"customer_id"`
+	ID         primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	OryID      string             `bson:"ory_id" json:"ory_id"`
+	UserID     uuid.UUID          `bson:"user_id" json:"user_id"`
+	TenantID   uuid.UUID          `bson:"tenant_id" json:"tenant_id,omitempty"`
+	CustomerID uuid.UUID          `bson:"customer_id" json:"customer_id,omitempty"`
 	Username   string             `bson:"username" json:"username"`
 	Email      string             `bson:"email" json:"email"`
-	Password   string             `bson:"password" json:"-"` // Don't expose password in JSON
-	Role       string             `bson:"role" json:"role"`
+	Roles      []string           `bson:"roles" json:"roles"`
 	CreatedAt  time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt  time.Time          `bson:"updated_at" json:"updated_at"`
 	LastLogin  time.Time          `bson:"last_login" json:"last_login"`
@@ -41,7 +43,8 @@ type User struct {
 }
 
 type APIKey struct {
-	ID         uuid.UUID `bson:"_id,omitempty" json:"id,omitempty"`
+	ID         uuid.UUID `bson:"_id,omitempty" json:"-"`
+	KeyID      uuid.UUID `bson:"key_id" json:"id"`
 	TenantID   uuid.UUID `bson:"tenant_id" json:"tenant_id"`
 	CustomerID uuid.UUID `bson:"customer_id" json:"customer_id"`
 	Key        string    `bson:"key" json:"key"`

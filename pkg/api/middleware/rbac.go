@@ -1,65 +1,77 @@
+// File: middleware/middleware.go
+
 package middleware
 
 import (
-	"net/http"
-	"strings"
-
-	"github.com/carverauto/eventrunner/pkg/api/handlers"
-	customctx "github.com/carverauto/eventrunner/pkg/context"
-	"github.com/carverauto/eventrunner/pkg/eventingest"
+	"github.com/carverauto/eventrunner/pkg/errors"
+	"github.com/golang-jwt/jwt/v5"
 	"gofr.dev/pkg/gofr"
+	gofrMiddleware "gofr.dev/pkg/gofr/http/middleware"
 )
 
-func AuthenticateAPIKey(next handlers.Handler) handlers.Handler {
-	return handlers.HandlerFunc(func(c *gofr.Context) (interface{}, error) {
-		return authenticateAPIKey(customctx.NewCustomContext(c), next)
-	})
+// Handler is an interface that wraps the basic Handle method.
+type Handler interface {
+	Handle(*gofr.Context) (interface{}, error)
 }
 
-func authenticateAPIKey(cc customctx.Context, next handlers.Handler) (interface{}, error) {
-	apiKey, ok := cc.GetAPIKey()
-	if !ok || apiKey == "" {
-		return nil, eventingest.NewAuthError("Missing API Key")
-	}
+// HandlerFunc is a function type that implements the Handler interface.
+type HandlerFunc func(*gofr.Context) (interface{}, error)
 
-	tenantID, ok := cc.GetUUIDClaim("tenant_id")
-	if !ok {
-		return nil, eventingest.NewAuthError("Missing tenant ID")
-	}
-
-	customerID, ok := cc.GetUUIDClaim("customer_id")
-	if !ok {
-		return nil, eventingest.NewAuthError("Missing customer ID")
-	}
-
-	cc.SetClaim("api_key", apiKey)
-	cc.SetClaim("tenant_id", tenantID)
-	cc.SetClaim("customer_id", customerID)
-
-	return next.Handle(cc.Context())
+// Handle calls f(c).
+func (f HandlerFunc) Handle(c *gofr.Context) (interface{}, error) {
+	return f(c)
 }
 
-// RequireRole checks if the user has the required role to access the resource, otherwise returns an error.
-func RequireRole(roles ...string) func(next handlers.Handler) handlers.Handler {
-	return func(next handlers.Handler) handlers.Handler {
-		return handlers.HandlerFunc(func(c *gofr.Context) (interface{}, error) {
-			cc := customctx.NewCustomContext(c)
+// Middleware defines the standard middleware signature.
+type Middleware func(Handler) Handler
 
-			scope, ok := cc.GetStringClaim("scope")
+// Adapt converts a HandlerFunc and middlewares into a gofr.Handler
+func Adapt(h HandlerFunc, middlewares ...Middleware) gofr.Handler {
+	return func(c *gofr.Context) (interface{}, error) {
+		var handler Handler = h
+		for i := len(middlewares) - 1; i >= 0; i-- {
+			handler = middlewares[i](handler)
+		}
+		return handler.Handle(c)
+	}
+}
+
+// RequireRole is a middleware that checks if the user has the required role.
+func RequireRole(roles ...string) Middleware {
+	return func(next Handler) Handler {
+		return HandlerFunc(func(c *gofr.Context) (interface{}, error) {
+			// Retrieve the JWT claim from the context
+			claimData := c.Context.Value(gofrMiddleware.JWTClaim)
+
+			// Assert that the claimData is of type jwt.MapClaims
+			claims, ok := claimData.(jwt.MapClaims)
 			if !ok {
-				return nil, NewErrorResponse(http.StatusForbidden, "Missing scope claim")
+				return nil, errors.NewInvalidParamError("JWT claims")
 			}
 
-			scopes := strings.Split(scope, " ")
+			// Check if the user has the required role
+			userRole, ok := claims["role"].(string)
+			if !ok {
+				return nil, errors.NewMissingParamError("role")
+			}
+
 			for _, role := range roles {
-				for _, s := range scopes {
-					if s == role {
-						return next.Handle(c)
-					}
+				if userRole == role {
+					return next.Handle(c)
 				}
 			}
 
-			return nil, NewErrorResponse(http.StatusForbidden, "Insufficient permissions")
+			return nil, errors.NewForbiddenError("Insufficient permissions")
 		})
 	}
+}
+
+// GetJWTClaims is a helper function to retrieve JWT claims from the context.
+func GetJWTClaims(c *gofr.Context) (jwt.MapClaims, error) {
+	claimData := c.Context.Value(gofrMiddleware.JWTClaim)
+	claims, ok := claimData.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.NewInvalidParamError("JWT claims")
+	}
+	return claims, nil
 }
