@@ -35,7 +35,6 @@ type User struct {
 	CustomerID uuid.UUID          `bson:"customer_id" json:"customer_id,omitempty"`
 	Username   string             `bson:"username" json:"username"`
 	Email      string             `bson:"email" json:"email"`
-	Password   string             `bson:"password" json:"-"` // Don't expose password in JSON
 	Roles      []string           `bson:"roles" json:"roles"`
 	CreatedAt  time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt  time.Time          `bson:"updated_at" json:"updated_at"`
