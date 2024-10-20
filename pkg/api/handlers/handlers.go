@@ -1,10 +1,8 @@
-// File: handlers/handlers.go
-
 package handlers
 
 import (
-	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/carverauto/eventrunner/pkg/api/middleware"
@@ -43,14 +41,14 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 
 	// Create identity in Ory
 	identity := ory.CreateIdentityBody{
-		SchemaId: "preset://email",
+		SchemaId: os.Getenv("ORY_SCHEMA_ID"),
 		Traits: map[string]interface{}{
 			"email": user.Email,
 			"role":  "superuser",
 		},
 	}
 
-	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(context.Background()).CreateIdentityBody(identity).Execute()
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
 		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create identity in Ory: %v", err))
 	}
@@ -123,7 +121,7 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 
 	// Create identity in Ory
 	identity := ory.CreateIdentityBody{
-		SchemaId: "preset://email",
+		SchemaId: os.Getenv("ORY_SCHEMA_ID"),
 		Traits: map[string]interface{}{
 			"email":    user.Email,
 			"role":     user.Roles[0], // Assuming the first role is the primary role
@@ -131,7 +129,7 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 		},
 	}
 
-	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(context.Background()).CreateIdentityBody(identity).Execute()
+	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
 		return nil, errors.NewAppError(500, fmt.Sprintf("Failed to create identity in Ory: %v", err))
 	}
