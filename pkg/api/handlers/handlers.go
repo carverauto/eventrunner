@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -28,25 +29,22 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewInvalidParamError("user data")
 	}
 
-	// Check if this is the first user
-	var existingUsers []models.User
-	err := c.Mongo.Find(c, "users", bson.M{}, &existingUsers)
-	if err != nil {
-		return nil, errors.NewDatabaseError(err, "Failed to query users")
-	}
-
-	if len(existingUsers) > 0 {
-		return nil, errors.NewAppError(409, "Superuser already exists")
-	}
+	// Generate a new UUID for the tenant_id
+	tenantID := uuid.New()
 
 	// Create identity in Ory
 	identity := ory.CreateIdentityBody{
 		SchemaId: os.Getenv("ORY_SCHEMA_ID"),
 		Traits: map[string]interface{}{
-			"email": user.Email,
-			"role":  "superuser",
+			"email":     user.Email,
+			"roles":     []string{"superuser"},
+			"tenant_id": tenantID.String(),
 		},
 	}
+
+	// Debug logging
+	payloadBytes, _ := json.MarshalIndent(identity, "", "  ")
+	fmt.Printf("Payload being sent to Ory:\n%s\n", string(payloadBytes))
 
 	createdIdentity, _, err := h.OryClient.IdentityAPI.CreateIdentity(c.Context).CreateIdentityBody(identity).Execute()
 	if err != nil {
@@ -56,6 +54,7 @@ func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 	// Create user in MongoDB
 	user.UserID = uuid.New()
 	user.OryID = createdIdentity.Id
+	user.TenantID = tenantID
 	user.Roles = []string{"superuser"}
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
