@@ -1,0 +1,37 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenantusages.metering.yourdomain.com
+spec:
+  group: metering.yourdomain.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                tenantId:
+                  type: string
+                cpuUsage:
+                  type: number
+                memoryUsage:
+                  type: number
+                networkIngress:
+                  type: number
+                networkEgress:
+                  type: number
+                timestamp:
+                  type: string
+                  format: date-time
+  scope: Namespaced
+  names:
+    plural: tenantusages
+    singular: tenantusage
+    kind: TenantUsage
+    shortNames:
+      - tu
