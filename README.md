@@ -11,7 +11,7 @@ EventRunner is a high-speed, high-throughput event processing engine designed to
 ```mermaid
 graph TD
     A[Client] --> B[Ory Oathkeeper]
-    B --> C[OPA]
+    B --> C[Ory Keto]
     B --> D[EventRunner API]
     E[HTTP Ingest Service] --> F[NATS JetStream]
     G[gRPC Ingest Service] --> F
@@ -24,9 +24,10 @@ graph TD
     M --> J
     I --> N[Tenant Event Streams]
     N --> O[wasmCloud Runtime]
-    P[Billing Service] --> L
-    Q[Grafana] --> L
-    R[Prometheus] --> Q
+    O --> P[OPA]
+    Q[Billing Service] --> L
+    R[Grafana] --> L
+    S[Prometheus] --> R
 
     style B fill:#f9f,stroke:#333,stroke-width:2px
     style C fill:#ff9,stroke:#333,stroke-width:2px
@@ -37,12 +38,13 @@ graph TD
     style L fill:#f96,stroke:#333,stroke-width:2px
     style M fill:#9bf,stroke:#333,stroke-width:2px
     style O fill:#fcf,stroke:#333,stroke-width:2px
+    style P fill:#ffc,stroke:#333,stroke-width:2px
 ```
 
 ## Components
 
-1. **Ory Oathkeeper**: API Gateway handling authentication and authorization, integrated with OPA.
-2. **Open Policy Agent (OPA)**: Provides fine-grained authorization decisions.
+1. **Ory Oathkeeper**: API Gateway handling authentication and coarse-grained authorization.
+2. **Ory Keto**: Fine-grained authorization service based on Google Zanzibar.
 3. **EventRunner API**: Core API for managing the event processing system.
 4. **Ingest Services**: HTTP and gRPC services for event ingestion.
 5. **NATS JetStream**: High-performance message broker for event distribution.
@@ -52,9 +54,10 @@ graph TD
 9. **Scylla DB**: Primary data storage for processed events.
 10. **ClickHouse**: Column-oriented DBMS for real-time analytics and billing data.
 11. **wasmCloud Runtime**: Executes WebAssembly modules as tenant-specific event consumers.
-12. **Billing Service**: Manages resource usage tracking and invoice generation.
-13. **Grafana**: Provides visualization for metrics and user-accessible dashboards.
-14. **Prometheus**: Collects and stores metrics from various system components.
+12. **Open Policy Agent (OPA)**: Provides authorization for wasmCloud-based consumers.
+13. **Billing Service**: Manages resource usage tracking and invoice generation.
+14. **Grafana**: Provides visualization for metrics and user-accessible dashboards.
+15. **Prometheus**: Collects and stores metrics from various system components.
 
 ## Key Features
 
@@ -66,18 +69,18 @@ graph TD
 - Real-time analytics and billing with ClickHouse
 - Tenant-specific event streaming and processing
 - Secure, polyglot event consumer execution using WebAssembly and wasmCloud
-- Fine-grained access control with Open Policy Agent via Ory Oathkeeper
+- Fine-grained access control with Ory Keto for API and OPA for wasmCloud consumers
 - Comprehensive billing and resource usage tracking
 
 ## Authentication and Authorization
 
-EventRunner uses Ory Oathkeeper as the API Gateway, which integrates natively with Open Policy Agent (OPA) for fine-grained authorization decisions.
+EventRunner uses Ory Oathkeeper as the API Gateway, which integrates with Ory Keto for fine-grained authorization decisions. For wasmCloud-based consumers, we use Open Policy Agent (OPA).
 
-### Authorization Flow
+### API Authorization Flow
 
 1. Client sends a request to the API endpoint.
 2. Ory Oathkeeper authenticates the request.
-3. Oathkeeper consults OPA for an authorization decision.
+3. Oathkeeper consults Ory Keto for an authorization decision.
 4. If authorized, the request is forwarded to the appropriate EventRunner API service.
 5. The API service handles the request, assuming it's already authorized.
 
@@ -85,48 +88,42 @@ EventRunner uses Ory Oathkeeper as the API Gateway, which integrates natively wi
 
 ```yaml
 authorizers:
-  opa:
+  keto_engine_acp_ory:
     enabled: true
     config:
-      url: http://opa:8181/v1/data/eventrunner/authz/allow
+      base_url: http://keto:4466
+      required_action: api:access
+      required_resource: api:resource
 ```
 
-### OPA Policy Example
+### Ory Keto Policy Example
+
+```json
+{
+  "namespace": "api",
+  "object": "resource:usage",
+  "relation": "access",
+  "subject": "user:alice@example.com"
+}
+```
+
+### wasmCloud Consumer Authorization
+
+For wasmCloud-based consumers, we use OPA for fine-grained authorization. Here's an example OPA policy:
 
 ```rego
-package eventrunner.authz
+package eventrunner.wasmcloud
 
 default allow = false
 
 allow {
-    is_authenticated
-    has_permission
+    input.action == "process_event"
+    input.tenant_id == data.tenants[input.user].id
 }
 
-is_authenticated {
-    input.subject.authenticated = true
-}
-
-has_permission {
-    role := input.subject.roles[_]
-    permissions := role_permissions[role]
-    required_permission := required_permissions[input.resource][input.action]
-    permissions[_] == required_permission
-}
-
-role_permissions = {
-    "admin": ["read", "write", "delete"],
-    "user": ["read"]
-}
-
-required_permissions = {
-    "/api/v1/usage": {
-        "GET": "read"
-    },
-    "/api/v1/billing": {
-        "GET": "read",
-        "POST": "write"
-    }
+data.tenants = {
+    "alice": {"id": "tenant1"},
+    "bob": {"id": "tenant2"}
 }
 ```
 
@@ -186,11 +183,11 @@ impl MessageSubscriber for EventConsumer {
 
 ## Setup and Deployment
 
-1. Deploy Ory Oathkeeper and configure OPA integration.
+1. Deploy Ory Oathkeeper and Ory Keto.
 2. Set up NATS JetStream, Scylla DB, and ClickHouse.
 3. Deploy the EventRunner API and associated services.
-4. Configure Grafana dashboards with ClickHouse as a data source.
-5. Set up the wasmCloud runtime for tenant-specific event processing.
+4. Set up the wasmCloud runtime with OPA for tenant-specific event processing.
+5. Configure Grafana dashboards with ClickHouse as a data source.
 
 Detailed deployment instructions can be found in the [Deployment Guide](./docs/deployment-guide.md).
 
