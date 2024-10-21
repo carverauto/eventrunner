@@ -5,6 +5,7 @@ go 1.23.1
 replace github.com/carverauto/gofr-nats => ../gofr-nats
 
 replace gofr.dev/pkg/gofr/datasource/cassandra => ../gofr/pkg/gofr/datasource/cassandra
+
 replace gofr.dev/pkg/gofr => ../gofr/pkg/gofr
 
 replace gofr.dev/pkg/gofr/datasource/mongo => ../gofr/pkg/gofr/datasource/mongo
@@ -16,7 +17,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/google/uuid v1.6.0
-	github.com/ory/client-go v1.15.6
+	github.com/ory/client-go v1.15.7
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/mock v0.4.0
