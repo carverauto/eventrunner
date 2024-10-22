@@ -20,7 +20,7 @@ require (
 	github.com/ory/client-go v1.15.6
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.17.1
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	gofr.dev v1.24.1
 	gofr.dev/pkg/gofr/datasource/cassandra v0.1.0
 	gofr.dev/pkg/gofr/datasource/mongo v0.2.0
