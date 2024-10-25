@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"strings"
@@ -15,6 +16,8 @@ import (
 func main() {
 	// Initialize the Gofr app
 	app := gofr.New()
+
+	ctx := context.Background()
 
 	subjects := strings.Split(app.Config.Get("NATS_SUBJECTS"), ",")
 
@@ -33,7 +36,10 @@ func main() {
 	}, app.Logger())
 	natsClient.UseLogger(app.Logger)
 	natsClient.UseMetrics(app.Metrics())
-	app.AddPubSub(natsClient)
+	if err := app.AddPubSub(ctx, natsClient); err != nil {
+		app.Logger().Errorf("Failed to connect to NATS: %v", err)
+		return
+	}
 
 	// Wrap the Gofr app in an AppWrapper to implement the AppInterface
 	appWrapper := eventrunner.NewAppWrapper(app)
