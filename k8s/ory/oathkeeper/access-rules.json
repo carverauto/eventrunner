@@ -1,0 +1,46 @@
+[
+  {
+    "id": "health-readiness",
+    "match": {
+      "url": "http://127.0.0.1:4456/health/*",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  },
+  {
+    "id": "default",
+    "match": {
+      "url": "http://127.0.0.1:4456/*",
+      "methods": [
+        "GET"
+      ]
+    },
+    "authenticators": [
+      {
+        "handler": "anonymous"
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "noop"
+      }
+    ]
+  }
+]
