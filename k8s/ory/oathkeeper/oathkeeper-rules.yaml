@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-rules
+  namespace: default
+data:
+  access-rules.json: |
+    [
+      {
+        "id": "eventrunner-api-rule",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "http://api.tunnel.threadr.ai/<**>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt",
+            "config": {
+              "jwks_urls": ["http://jwks-server.eventrunner.svc.cluster.local/jwks.json"],
+              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
+              "target_audience": ["eventrunner"]
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutator": {
+          "handler": "header",
+          "config": {
+            "headers": {
+              "X-User": "{{ print .Subject }}",
+              "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+              "X-Request-Id": "{{ print .RequestID }}"
+            }
+          }
+        }
+      },
+      {
+        "id": "decisions-endpoint",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions/<**>",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt",
+            "config": {
+              "jwks_urls": ["http://jwks-server.eventrunner.svc.cluster.local/jwks.json"],
+              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
+              "target_audience": ["eventrunner"]
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutator": {
+          "handler": "header",
+          "config": {
+            "headers": {
+              "X-User": "{{ print .Subject }}",
+              "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+              "X-Request-Id": "{{ print .RequestID }}"
+            }
+          }
+        }
+      }
+    ]

@@ -13,7 +13,7 @@ oathkeeper:
     access_rules:
       repositories:
         - inline://WwogIHsKICAgICJpZCI6ICJoZWFsdGgtcmVhZGluZXNzIiwKICAgICJtYXRjaCI6IHsKICAgICAgInVybCI6ICJodHRwOi8vMTI3LjAuMC4xOjQ0NTYvaGVhbHRoLyoiLAogICAgICAibWV0aG9kcyI6IFsKICAgICAgICAiR0VUIgogICAgICBdCiAgICB9LAogICAgImF1dGhlbnRpY2F0b3JzIjogWwogICAgICB7CiAgICAgICAgImhhbmRsZXIiOiAiYW5vbnltb3VzIgogICAgICB9CiAgICBdLAogICAgImF1dGhvcml6ZXIiOiB7CiAgICAgICJoYW5kbGVyIjogImFsbG93IgogICAgfSwKICAgICJtdXRhdG9ycyI6IFsKICAgICAgewogICAgICAgICJoYW5kbGVyIjogIm5vb3AiCiAgICAgIH0KICAgIF0KICB9LAogIHsKICAgICJpZCI6ICJkZWZhdWx0IiwKICAgICJtYXRjaCI6IHsKICAgICAgInVybCI6ICJodHRwOi8vMTI3LjAuMC4xOjQ0NTYvKiIsCiAgICAgICJtZXRob2RzIjogWwogICAgICAgICJHRVQiCiAgICAgIF0KICAgIH0sCiAgICAiYXV0aGVudGljYXRvcnMiOiBbCiAgICAgIHsKICAgICAgICAiaGFuZGxlciI6ICJhbm9ueW1vdXMiCiAgICAgIH0KICAgIF0sCiAgICAiYXV0aG9yaXplciI6IHsKICAgICAgImhhbmRsZXIiOiAiYWxsb3ciCiAgICB9LAogICAgIm11dGF0b3JzIjogWwogICAgICB7CiAgICAgICAgImhhbmRsZXIiOiAibm9vcCIKICAgICAgfQogICAgXQogIH0KXQ==
-      matching_strategy: glob  # Changed to glob
+      matching_strategy: glob
 
     authenticators:
       anonymous:
@@ -26,7 +26,7 @@ oathkeeper:
         enabled: true
         config:
           jwks_urls:
-            - file:///etc/jwks/jwks.json
+            - http://jwks-server.eventrunner.svc.cluster.local/jwks.json
 
     authorizers:
       allow:
@@ -39,31 +39,15 @@ oathkeeper:
         enabled: true
         config:
           issuer_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"
-          jwks_url: file:///etc/jwks/jwks.json
+          jwks_url: http://jwks-server.eventrunner.svc.cluster.local/jwks.json
           ttl: "15m"
 
   deployment:
     replicas: 1
     pod:
-      volumes:
-        - name: jwks
-          secret:
-            secretName: oathkeeper-jwks
-            items:
-              - key: jwks.json
-                path: jwks.json
-        - name: custom-rules
-          configMap:
-            name: oathkeeper-access-rules
       containers:
         - name: oathkeeper
           image: oryd/oathkeeper:v0.40.7
-          volumeMounts:
-            - name: jwks
-              mountPath: /etc/jwks/jwks.json
-              subPath: jwks.json
-            - name: custom-rules
-              mountPath: /etc/rules
           readinessProbe:
             httpGet:
               path: /health/ready
@@ -80,5 +64,3 @@ oathkeeper:
             periodSeconds: 10
             initialDelaySeconds: 5
             timeoutSeconds: 1
-
-  # Rest of your config...

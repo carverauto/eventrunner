@@ -13,23 +13,31 @@ spec:
       labels:
         app: jwks-server
     spec:
-      serviceAccountName: eventrunner-account
-      imagePullSecrets:
-        - name: ghcr-io-cred
       containers:
         - name: jwks-server
-          image: ghcr.io/carverauto/jwks-server:v0.0.01
+          image: ghcr.io/carverauto/jwks-server:v0.0.03
           imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
           volumeMounts:
-            - name: config
-              mountPath: /app/configs
+            - name: jwks-volume
+              mountPath: /app/config/jwks.json
+              subPath: jwks.json
+            - name: rules-volume
+              mountPath: /app/config/rules.json
+              subPath: rules.json
       volumes:
-        - name: config
+        - name: jwks-volume
           configMap:
-            name: eventrunner-config
-        - name: nats-creds
-          secret:
-            secretName: nats-creds
+            name: jwks-data
             items:
-              - key: nats.creds
-                path: nats.creds
+              - key: jwks.json
+                path: jwks.json
+        - name: rules-volume
+          configMap:
+            name: oathkeeper-rules-data
+            items:
+              - key: rules.json
+                path: rules.json
+      imagePullSecrets:
+        - name: ghcr-io-cred

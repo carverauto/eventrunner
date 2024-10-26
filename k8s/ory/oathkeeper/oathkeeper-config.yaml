@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eventrunner-api
+  namespace: eventrunner
+  annotations:
+    cert-manager.io/cluster-issuer: "threadr-issuer"
+    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions"
+    nginx.ingress.kubernetes.io/auth-response-headers: "Authorization,X-User,X-Tenant-ID"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx  # Using spec instead of deprecated annotation
+  tls:
+    - hosts:
+        - api.tunnel.threadr.ai
+      secretName: eventrunner-api-tls
+  rules:
+    - host: api.tunnel.threadr.ai
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: eventrunner-api
+                port:
+                  number: 8200

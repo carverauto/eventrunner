@@ -1,2 +1,4 @@
 resources:
+  - jwks-server-configmaps.yaml
   - jwks-server.yaml
+  - service.yaml
