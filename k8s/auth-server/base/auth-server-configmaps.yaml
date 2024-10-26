@@ -8,13 +8,14 @@ data:
     [
       {
         "id": "api-health-check",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
         "match": {
-          "url": "/api/v1/health",
-          "methods": ["GET"]
+          "url": "<.*>",
+          "methods": [
+            "GET"],
+          "headers": {
+            "x-auth-request-redirect": [
+              "/api/v1/health"]
+          }
         },
         "authenticators": [
           {
@@ -29,77 +30,20 @@ data:
         },
         "mutators": [
           {
-            "handler": "noop"
-          }
-        ]
-      },
-      {
-        "id": "auth-check",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
-        "match": {
-          "url": "/judge",
-          "methods": ["GET"]
-        },
-        "authenticators": [
-          {
-            "handler": "anonymous",
-            "config": {
-              "subject": "anonymous"
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
             "handler": "header",
             "config": {
               "headers": {
                 "X-User": "anonymous",
                 "X-Tenant-ID": "default",
-                "X-Request-Id": "{{ print .RequestID }}"
+                "X-Request-Id": "{{ index .Header \"x-request-id\" }}"
               }
-            }
-          }
-        ]
-      },
-      {
-        "id": "protected-endpoints",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
-        "match": {
-          "url": "/api/v1/<.*>",
-          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        },
-        "authenticators": [
-          {
-            "handler": "jwt",
-            "config": {
-              "jwks_urls": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"],
-              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"]
             }
           }
         ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
-                "X-Request-Id": "{{ print .RequestID }}"
-              }
-            }
-          }
-        ]
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
+          "strip_path": "/judge"
+        }
       }
     ]

@@ -30,7 +30,7 @@ oathkeeper:
     access_rules:
       repositories:
         - "http://auth-server.eventrunner.svc.cluster.local/rules.json"
-      matching_strategy: glob
+      matching_strategy: regexp
 
     authenticators:
       anonymous:
