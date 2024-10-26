@@ -1,6 +1,8 @@
 package eventrunner
 
 import (
+	"context"
+
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/container"
 	"gofr.dev/pkg/gofr/logging"
@@ -13,8 +15,8 @@ type AppWrapper struct {
 	app *gofr.App
 }
 
-func (a *AppWrapper) AddMongo(mongoClient container.MongoProvider) {
-	a.app.AddMongo(mongoClient)
+func (a *AppWrapper) AddMongo(ctx context.Context, mongoClient container.MongoProvider) error {
+	return a.app.AddMongo(ctx, mongoClient)
 }
 
 func NewAppWrapper(app *gofr.App) *AppWrapper {
@@ -37,12 +39,12 @@ func (a *AppWrapper) Metrics() metrics.Manager {
 	return a.app.Metrics()
 }
 
-func (a *AppWrapper) AddPubSub(pubsubClient container.PubSubProvider) {
-	a.app.AddPubSub(pubsubClient)
+func (a *AppWrapper) AddPubSub(ctx context.Context, pubsubClient container.PubSubProvider) error {
+	return a.app.AddPubSub(ctx, pubsubClient)
 }
 
-func (a *AppWrapper) AddCassandra(cassandraClient container.CassandraProvider) {
-	a.app.AddCassandra(cassandraClient)
+func (a *AppWrapper) AddCassandra(ctx context.Context, cassandraClient container.CassandraProvider) error {
+	return a.app.AddCassandra(ctx, cassandraClient)
 }
 
 func (a *AppWrapper) Migrate(migrationsMap map[int64]migration.Migrate) {
