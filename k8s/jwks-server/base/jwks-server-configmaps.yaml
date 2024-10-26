@@ -7,13 +7,37 @@ data:
   rules.json: |
     [
       {
-        "id": "auth-rule",
+        "id": "oathkeeper-health",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/health/alive",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
+      },
+      {
+        "id": "judge-endpoint",
         "upstream": {
           "preserve_host": true,
           "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
         },
         "match": {
-          "url": ".*",
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local/judge",
           "methods": ["GET"]
         },
         "authenticators": [
@@ -22,7 +46,7 @@ data:
             "config": {
               "jwks_urls": ["http://jwks-server.eventrunner.svc.cluster.local/jwks.json"],
               "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
-              "required": false
+              "target_audience": ["eventrunner"]
             }
           }
         ],
