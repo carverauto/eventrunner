@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server
+  namespace: eventrunner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-server
+  template:
+    metadata:
+      labels:
+        app: auth-server
+    spec:
+      containers:
+        - name: auth-server
+          image: ghcr.io/carverauto/auth-server:v0.0.06
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: rules-volume
+              mountPath: /app/config/rules.json
+              subPath: rules.json
+      volumes:
+        - name: rules-volume
+          configMap:
+            name: oathkeeper-rules-data
+            items:
+              - key: rules.json
+                path: rules.json
+      imagePullSecrets:
+        - name: ghcr-io-cred

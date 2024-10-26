@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+namespace: eventrunner
+resources:
+  - eventrunner.yaml
+  - configmap.yaml
+  - service.yaml
+  - ingress.yaml

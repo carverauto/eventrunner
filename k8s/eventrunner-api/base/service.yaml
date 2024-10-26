@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eventrunner-api
+  namespace: eventrunner
+spec:
+  selector:
+    app: eventrunner-api
+  ports:
+    - protocol: TCP
+      port: 8200
+      targetPort: 8200
+  type: ClusterIP

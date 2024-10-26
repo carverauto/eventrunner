@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-config
+  namespace: default
+data:
+  config.yaml: |
+    serve:
+      proxy:
+        port: 4455
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - Authorization
+            - Content-Type
+          exposed_headers:
+            - X-User
+            - X-Tenant-ID
+          allow_credentials: true
+          debug: true
+      api:
+        port: 4456
+    
+    access_rules:
+      repositories:
+        - file:///etc/rules/access-rules.json
+      matching_strategy: "regexp"
+    
+    authenticators:
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json
+    
+    authorizers:
+      allow:
+        enabled: true
+    
+    mutators:
+      header:
+        enabled: true
+      noop:
+        enabled: true
