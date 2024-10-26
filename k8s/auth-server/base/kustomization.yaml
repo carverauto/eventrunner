@@ -1,0 +1,4 @@
+resources:
+  - auth-server-configmaps.yaml
+  - auth-server.yaml
+  - service.yaml

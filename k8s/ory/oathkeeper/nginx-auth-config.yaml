@@ -39,7 +39,7 @@ data:
         enabled: true
         config:
           jwks_urls:
-            - http://jwks-server.eventrunner.svc.cluster.local/jwks.json
+            - https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json
     
     authorizers:
       allow:

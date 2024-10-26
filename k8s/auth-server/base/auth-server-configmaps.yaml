@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oathkeeper-rules-data
+  namespace: eventrunner
+data:
+  rules.json: |
+    [
+      {
+        "id": "api-health-check",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "/api/v1/health",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous",
+            "config": {
+              "subject": "guest"
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
+      },
+      {
+        "id": "auth-check",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "/judge",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous",
+            "config": {
+              "subject": "anonymous"
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "anonymous",
+                "X-Tenant-ID": "default",
+                "X-Request-Id": "{{ print .RequestID }}"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "protected-endpoints",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "/api/v1/<.*>",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt",
+            "config": {
+              "jwks_urls": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"],
+              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"]
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "{{ print .Subject }}",
+                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+                "X-Request-Id": "{{ print .RequestID }}"
+              }
+            }
+          }
+        ]
+      }
+    ]

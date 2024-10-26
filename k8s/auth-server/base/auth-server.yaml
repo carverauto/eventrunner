@@ -1,38 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jwks-server
+  name: auth-server
   namespace: eventrunner
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: jwks-server
+      app: auth-server
   template:
     metadata:
       labels:
-        app: jwks-server
+        app: auth-server
     spec:
       containers:
-        - name: jwks-server
-          image: ghcr.io/carverauto/jwks-server:v0.0.06
+        - name: auth-server
+          image: ghcr.io/carverauto/auth-server:v0.0.06
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
           volumeMounts:
-            - name: jwks-volume
-              mountPath: /app/config/jwks.json
-              subPath: jwks.json
             - name: rules-volume
               mountPath: /app/config/rules.json
               subPath: rules.json
       volumes:
-        - name: jwks-volume
-          configMap:
-            name: jwks-data
-            items:
-              - key: jwks.json
-                path: jwks.json
         - name: rules-volume
           configMap:
             name: oathkeeper-rules-data

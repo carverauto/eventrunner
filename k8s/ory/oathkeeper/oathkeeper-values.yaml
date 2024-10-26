@@ -5,6 +5,23 @@ oathkeeper:
         port: 4455
         cors:
           enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - Authorization
+            - Content-Type
+          exposed_headers:
+            - X-User
+            - X-Tenant-ID
+            - X-Request-Id
+          allow_credentials: true
+          debug: true
       api:
         port: 4456
         cors:
@@ -12,7 +29,7 @@ oathkeeper:
 
     access_rules:
       repositories:
-        - http://jwks-server.eventrunner.svc.cluster.local/rules.json
+        - "http://auth-server.eventrunner.svc.cluster.local/rules.json"
       matching_strategy: glob
 
     authenticators:
@@ -26,7 +43,7 @@ oathkeeper:
         enabled: true
         config:
           jwks_urls:
-            - http://jwks-server.eventrunner.svc.cluster.local/jwks.json
+            - "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"
 
     authorizers:
       allow:
@@ -35,12 +52,14 @@ oathkeeper:
     mutators:
       noop:
         enabled: true
-      id_token:
-        enabled: true
+      header:
         config:
-          issuer_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"
-          jwks_url: http://jwks-server.eventrunner.svc.cluster.local/jwks.json
-          ttl: "15m"
+          headers: {} # This is important - we're enabling header mutator with empty default config
+        enabled: true
+
+    log:
+      level: debug
+      format: json
 
   deployment:
     replicas: 1
