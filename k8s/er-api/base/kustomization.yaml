@@ -1,3 +1,0 @@
-resources:
-  - eventrunner.yaml
-  - configmap.yaml

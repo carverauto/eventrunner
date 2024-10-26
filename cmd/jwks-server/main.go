@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 
 	"gofr.dev/pkg/gofr"
+	"gofr.dev/pkg/gofr/http/response"
 )
 
 const (
@@ -26,7 +28,12 @@ func JWKSHandler(c *gofr.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	return string(data), nil
+	var jsonObj interface{}
+	if err := json.Unmarshal(data, &jsonObj); err != nil {
+		return nil, err
+	}
+
+	return response.Raw{Data: jsonObj}, nil
 }
 
 func RulesHandler(c *gofr.Context) (interface{}, error) {
@@ -35,5 +42,10 @@ func RulesHandler(c *gofr.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	return string(data), nil
+	var jsonObj interface{}
+	if err := json.Unmarshal(data, &jsonObj); err != nil {
+		return nil, err
+	}
+
+	return response.Raw{Data: jsonObj}, nil
 }

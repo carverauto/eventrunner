@@ -15,7 +15,7 @@ data:
     DB_NAME=eventrunner
     DB_PORT=2001
     DB_DIALECT=mongo
-    DB_URL=mongodb://mongodb.svc.cluster.local:27017
+    DB_URL=mongodb://er-mongodb.svc.cluster.local:27017
   .staging.env: |
     LOG_LEVEL=DEBUG
     APP_NAME=eventrunner
@@ -27,4 +27,4 @@ data:
     DB_NAME=eventrunner
     DB_PORT=2001
     DB_DIALECT=mongo
-    DB_URL=mongodb://mongodb.svc.cluster.local:27017
+    DB_URL=mongodb://er-mongodb.svc.cluster.local:27017

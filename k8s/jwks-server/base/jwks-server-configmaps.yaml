@@ -1,71 +1,19 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: jwks-data
-  namespace: eventrunner
-data:
-  jwks.json: |
-    {
-      "keys": [
-        {
-          "e": "AQAB",
-          "kid": "eventrunner-jwt",
-          "kty": "RSA",
-          "n": "viVXLTzUz5zrrTRFe59lc5JfjonbmnBxgGVD2RHG-FQXdKp-5xnuH5C9ZLujcew8jYoeFw6o7ab7PMONzru5UcjxadKXaC1uTId_chCDVVVSD80IlYtzgchhMBTpqZJY5hd6GybODwJj0ulcfpXmw43dF5CRC9uLbLuSvkVsELgcioUJnaMTZjisY9R5ApeUOLSAZGOacdlVBBZfQb8pVjBqJQQmcyzooLZdXq-hNvutnI15sPQLcoBXXat_n8lfrI2Jr_mlG_rcvAdhZXUGeu1NeWdJuaHFoHcbV-PeSnr0mAGZxFEdM6nFywqmjtiU3EXhDmqfrB7hMiWdbAueRQ"
-        }
-      ]
-    }
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: oathkeeper-rules-data
   namespace: eventrunner
 data:
   rules.json: |
     [
       {
-        "id": "eventrunner-api-rule",
+        "id": "auth-rule",
         "upstream": {
           "preserve_host": true,
           "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
         },
         "match": {
-          "url": "http://api.tunnel.threadr.ai/<**>",
-          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        },
-        "authenticators": [
-          {
-            "handler": "jwt",
-            "config": {
-              "jwks_urls": ["http://jwks-server.eventrunner.svc.cluster.local/jwks.json"],
-              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
-              "target_audience": ["eventrunner"]
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutator": {
-          "handler": "header",
-          "config": {
-            "headers": {
-              "X-User": "{{ print .Subject }}",
-              "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
-              "X-Request-Id": "{{ print .RequestID }}"
-            }
-          }
-        }
-      },
-      {
-        "id": "decisions-endpoint",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions/<**>",
+          "url": ".*",
           "methods": ["GET"]
         },
         "authenticators": [
@@ -74,22 +22,24 @@ data:
             "config": {
               "jwks_urls": ["http://jwks-server.eventrunner.svc.cluster.local/jwks.json"],
               "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
-              "target_audience": ["eventrunner"]
+              "required": false
             }
           }
         ],
         "authorizer": {
           "handler": "allow"
         },
-        "mutator": {
-          "handler": "header",
-          "config": {
-            "headers": {
-              "X-User": "{{ print .Subject }}",
-              "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
-              "X-Request-Id": "{{ print .RequestID }}"
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "{{ print .Subject }}",
+                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+                "X-Request-Id": "{{ print .RequestID }}"
+              }
             }
           }
-        }
+        ]
       }
     ]

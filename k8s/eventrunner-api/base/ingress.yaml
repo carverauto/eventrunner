@@ -4,12 +4,13 @@ metadata:
   name: eventrunner-api
   namespace: eventrunner
   annotations:
-    cert-manager.io/cluster-issuer: "threadr-issuer"
-    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions"
-    nginx.ingress.kubernetes.io/auth-response-headers: "Authorization,X-User,X-Tenant-ID"
+    cert-manager.io/cluster-issuer: threadr-issuer
+    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.default.svc.cluster.local:4455/judge"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-User,X-Tenant-ID,X-Request-Id"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-preserve-uri: "true"
 spec:
-  ingressClassName: nginx  # Using spec instead of deprecated annotation
+  ingressClassName: nginx
   tls:
     - hosts:
         - api.tunnel.threadr.ai

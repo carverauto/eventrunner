@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: jwks-server
-          image: ghcr.io/carverauto/jwks-server:v0.0.03
+          image: ghcr.io/carverauto/jwks-server:v0.0.06
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
