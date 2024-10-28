@@ -7,14 +7,15 @@ data:
   rules.json: |
     [
       {
-        "id": "api-health-check",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
+        "id": "health-check",
         "match": {
-          "url": "/api/v1/health",
-          "methods": ["GET"]
+          "url": "<^http://oathkeeper-proxy\\.default\\.svc\\.cluster\\.local:4455/authenticate$>",
+          "methods": [
+            "GET"],
+          "headers": {
+            "X-Original-Uri": [
+              "^/\\.well-known/health$"]
+          }
         },
         "authenticators": [
           {
@@ -31,23 +32,29 @@ data:
           {
             "handler": "noop"
           }
-        ]
+        ],
+        "upstream": {
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/health",
+          "preserve_host": false,
+          "preserve_path": false
+        }
       },
       {
-        "id": "auth-check",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
+        "id": "alive-check",
         "match": {
-          "url": "/judge",
-          "methods": ["GET"]
+          "url": "<^http://oathkeeper-proxy\\.default\\.svc\\.cluster\\.local:4455/authenticate$>",
+          "methods": [
+            "GET"],
+          "headers": {
+            "X-Original-Uri": [
+              "^/\\.well-known/alive$"]
+          }
         },
         "authenticators": [
           {
             "handler": "anonymous",
             "config": {
-              "subject": "anonymous"
+              "subject": "guest"
             }
           }
         ],
@@ -56,50 +63,13 @@ data:
         },
         "mutators": [
           {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "anonymous",
-                "X-Tenant-ID": "default",
-                "X-Request-Id": "{{ print .RequestID }}"
-              }
-            }
+            "handler": "noop"
           }
-        ]
-      },
-      {
-        "id": "protected-endpoints",
+        ],
         "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
-        "match": {
-          "url": "/api/v1/<.*>",
-          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        },
-        "authenticators": [
-          {
-            "handler": "jwt",
-            "config": {
-              "jwks_urls": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"],
-              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"]
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
-                "X-Request-Id": "{{ print .RequestID }}"
-              }
-            }
-          }
-        ]
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive",
+          "preserve_host": false,
+          "preserve_path": false
+        }
       }
     ]
