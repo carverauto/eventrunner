@@ -16,6 +16,7 @@ oathkeeper:
           allowed_headers:
             - Authorization
             - Content-Type
+            - X-Debug
           exposed_headers:
             - X-User
             - X-Tenant-ID
@@ -24,8 +25,6 @@ oathkeeper:
           debug: true
       api:
         port: 4456
-        cors:
-          enabled: true
 
     access_rules:
       repositories:
@@ -35,15 +34,8 @@ oathkeeper:
     authenticators:
       anonymous:
         enabled: true
-        config:
-          subject: guest
       noop:
         enabled: true
-      jwt:
-        enabled: true
-        config:
-          jwks_urls:
-            - "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"
 
     authorizers:
       allow:
@@ -53,33 +45,10 @@ oathkeeper:
       noop:
         enabled: true
       header:
-        config:
-          headers: {} # This is important - we're enabling header mutator with empty default config
         enabled: true
+        config:
+          headers: {}
 
     log:
       level: debug
       format: json
-
-  deployment:
-    replicas: 1
-    pod:
-      containers:
-        - name: oathkeeper
-          image: oryd/oathkeeper:v0.40.7
-          readinessProbe:
-            httpGet:
-              path: /health/ready
-              port: 4456
-            failureThreshold: 3
-            periodSeconds: 10
-            initialDelaySeconds: 5
-            timeoutSeconds: 1
-          livenessProbe:
-            httpGet:
-              path: /health/alive
-              port: 4456
-            failureThreshold: 3
-            periodSeconds: 10
-            initialDelaySeconds: 5
-            timeoutSeconds: 1

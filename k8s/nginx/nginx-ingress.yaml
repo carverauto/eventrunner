@@ -26,6 +26,7 @@ spec:
           - IPv6
           - IPv4
       config:
+        allow-snippet-annotations: "true"
         use-forwarded-headers: "true"
       metrics:
         enabled: true

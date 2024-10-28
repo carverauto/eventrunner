@@ -7,14 +7,14 @@ data:
   rules.json: |
     [
       {
-        "id": "api-health-check",
+        "id": "health-check",
         "match": {
-          "url": "<.*>",
+          "url": "<^http://oathkeeper-proxy\\.default\\.svc\\.cluster\\.local:4455/authenticate$>",
           "methods": [
             "GET"],
           "headers": {
-            "x-auth-request-redirect": [
-              "/api/v1/health"]
+            "X-Original-Uri": [
+              "^/\\.well-known/health$"]
           }
         },
         "authenticators": [
@@ -30,20 +30,46 @@ data:
         },
         "mutators": [
           {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "anonymous",
-                "X-Tenant-ID": "default",
-                "X-Request-Id": "{{ index .Header \"x-request-id\" }}"
-              }
-            }
+            "handler": "noop"
           }
         ],
         "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
-          "strip_path": "/judge"
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/health",
+          "preserve_host": false,
+          "preserve_path": false
+        }
+      },
+      {
+        "id": "alive-check",
+        "match": {
+          "url": "<^http://oathkeeper-proxy\\.default\\.svc\\.cluster\\.local:4455/authenticate$>",
+          "methods": [
+            "GET"],
+          "headers": {
+            "X-Original-Uri": [
+              "^/\\.well-known/alive$"]
+          }
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous",
+            "config": {
+              "subject": "guest"
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive",
+          "preserve_host": false,
+          "preserve_path": false
         }
       }
     ]
