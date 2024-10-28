@@ -9,19 +9,17 @@ data:
       {
         "id": "health-check",
         "match": {
-          "url": "<^http://oathkeeper-proxy\\.default\\.svc\\.cluster\\.local:4455/authenticate$>",
-          "methods": [
-            "GET"],
+          "url": "<.*>",
+          "methods": ["GET"],
           "headers": {
-            "X-Original-Uri": [
-              "^/\\.well-known/health$"]
+            "X-Original-Uri": ["^/\\.well-known/health$"]
           }
         },
         "authenticators": [
           {
             "handler": "anonymous",
             "config": {
-              "subject": "guest"
+              "subject": "health-check"
             }
           }
         ],
@@ -34,42 +32,8 @@ data:
           }
         ],
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/health",
-          "preserve_host": false,
-          "preserve_path": false
-        }
-      },
-      {
-        "id": "alive-check",
-        "match": {
-          "url": "<^http://oathkeeper-proxy\\.default\\.svc\\.cluster\\.local:4455/authenticate$>",
-          "methods": [
-            "GET"],
-          "headers": {
-            "X-Original-Uri": [
-              "^/\\.well-known/alive$"]
-          }
-        },
-        "authenticators": [
-          {
-            "handler": "anonymous",
-            "config": {
-              "subject": "guest"
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "noop"
-          }
-        ],
-        "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive",
-          "preserve_host": false,
-          "preserve_path": false
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
+          "preserve_host": true
         }
       }
     ]
