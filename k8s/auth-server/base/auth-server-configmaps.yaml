@@ -7,20 +7,14 @@ data:
   rules.json: |
     [
       {
-        "id": "health-check",
+        "id": "k8s-health",
         "match": {
-          "url": "<.*>",
-          "methods": ["GET"],
-          "headers": {
-            "X-Original-Uri": ["^/\\.well-known/health$"]
-          }
+          "url": "<^/health/(ready|alive|live)$>",
+          "methods": ["GET"]
         },
         "authenticators": [
           {
-            "handler": "anonymous",
-            "config": {
-              "subject": "health-check"
-            }
+            "handler": "noop"
           }
         ],
         "authorizer": {
@@ -32,7 +26,30 @@ data:
           }
         ],
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455"
+        }
+      },
+      {
+        "id": "wellknown-endpoints",
+        "match": {
+          "url": "<^/decisions/.well-known/(alive|health)>",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "upstream": {
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive",
           "preserve_host": true
         }
       }

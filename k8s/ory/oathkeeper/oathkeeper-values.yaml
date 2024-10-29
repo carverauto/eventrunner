@@ -34,12 +34,25 @@ oathkeeper:
     authenticators:
       anonymous:
         enabled: true
+        config:
+          subject: "guest"
       noop:
         enabled: true
 
     authorizers:
       allow:
         enabled: true
+      deny:
+        enabled: true
+
+    errors:
+      fallback:
+        - json
+      handlers:
+        json:
+          enabled: true
+          config:
+            verbose: true
 
     mutators:
       noop:
