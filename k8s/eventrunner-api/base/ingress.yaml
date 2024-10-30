@@ -4,21 +4,20 @@ metadata:
   name: eventrunner-api
   namespace: eventrunner
   annotations:
-    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions$request_uri"
-    nginx.ingress.kubernetes.io/auth-method: GET
-    nginx.ingress.kubernetes.io/auth-response-headers: "Authorization"
-    nginx.ingress.kubernetes.io/auth-snippet: |
-      proxy_set_header Host $http_host;
+    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-api.default.svc.cluster.local:4456/decisions"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header X-Original-URI $request_uri;
       proxy_set_header X-Original-Method $request_method;
-      proxy_set_header Content-Length "";
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-Host $http_host;
+      proxy_set_header X-Forwarded-Uri $request_uri;
 spec:
   ingressClassName: nginx
   rules:
     - host: api.tunnel.threadr.ai
       http:
         paths:
-          - path: /.well-known
+          - path: /
             pathType: Prefix
             backend:
               service:

@@ -21,6 +21,7 @@ oathkeeper:
             - X-User
             - X-Tenant-ID
             - X-Request-Id
+            - Content-Type
           allow_credentials: true
           debug: true
       api:
@@ -35,7 +36,7 @@ oathkeeper:
       anonymous:
         enabled: true
         config:
-          subject: "guest"
+          subject: guest
       noop:
         enabled: true
 
@@ -65,3 +66,4 @@ oathkeeper:
     log:
       level: debug
       format: json
+      leak_sensitive_values: true

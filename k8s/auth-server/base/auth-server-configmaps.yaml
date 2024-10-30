@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: oathkeeper-rules-data
+  name: oathkeeper-rules
   namespace: eventrunner
 data:
   rules.json: |
     [
       {
-        "id": "k8s-health",
+        "id": "health-check",
         "match": {
           "url": "<^/health/(ready|alive|live)$>",
           "methods": ["GET"]
@@ -26,18 +26,19 @@ data:
           }
         ],
         "upstream": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455"
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
+          "preserve_host": true
         }
       },
       {
-        "id": "wellknown-endpoints",
+        "id": "well-known",
         "match": {
-          "url": "<^/decisions/.well-known/(alive|health)>",
+          "url": "<^/decisions($|/.*)$>",
           "methods": ["GET"]
         },
         "authenticators": [
           {
-            "handler": "noop"
+            "handler": "anonymous"
           }
         ],
         "authorizer": {
@@ -47,10 +48,6 @@ data:
           {
             "handler": "noop"
           }
-        ],
-        "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive",
-          "preserve_host": true
-        }
+        ]
       }
     ]
