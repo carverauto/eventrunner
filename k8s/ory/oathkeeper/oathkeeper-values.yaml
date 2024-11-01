@@ -5,46 +5,15 @@ oathkeeper:
         port: 4455
         cors:
           enabled: true
-          allowed_origins:
-            - "*"
-          allowed_methods:
-            - POST
-            - GET
-            - PUT
-            - PATCH
-            - DELETE
-          allowed_headers:
-            - Authorization
-            - Content-Type
-            - X-Debug
-          exposed_headers:
-            - X-User
-            - X-Tenant-ID
-            - X-Request-Id
-            - Content-Type
-          allow_credentials: true
-          debug: true
       api:
         port: 4456
+        cors:
+          enabled: true
 
     access_rules:
       repositories:
-        - "http://auth-server.eventrunner.svc.cluster.local/rules.json"
-      matching_strategy: regexp
-
-    authenticators:
-      anonymous:
-        enabled: true
-        config:
-          subject: guest
-      noop:
-        enabled: true
-
-    authorizers:
-      allow:
-        enabled: true
-      deny:
-        enabled: true
+        - http://auth-server.eventrunner.svc.cluster.local/rules.json
+      matching_strategy: glob
 
     errors:
       fallback:
@@ -54,16 +23,67 @@ oathkeeper:
           enabled: true
           config:
             verbose: true
+        redirect:
+          enabled: true
+          config:
+            to: https://www.ory.sh/docs
 
-    mutators:
+    authenticators:
+      anonymous:
+        enabled: true
+        config:
+          subject: guest
       noop:
         enabled: true
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json
+
+    authorizers:
+      allow:
+        enabled: true
+      deny:
+        enabled: true
+
+    mutators:
       header:
         enabled: true
         config:
-          headers: {}
+          headers:
+            X-User: "{{ print .Subject }}"
+            # You could add some other headers, for example with data from the
+            # session.
+            # X-Some-Arbitrary-Data: "{{ print .Extra.some.arbitrary.data }}"
+      noop:
+        enabled: true
+      id_token:
+        enabled: true
+        config:
+          issuer_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"
+          jwks_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"
+          ttl: "15m"
 
-    log:
-      level: debug
-      format: json
-      leak_sensitive_values: true
+  deployment:
+    replicas: 1
+    pod:
+      containers:
+        - name: oathkeeper
+          image: oryd/oathkeeper:v0.40.7
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 4456
+            failureThreshold: 3
+            periodSeconds: 10
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /health/alive
+              port: 4456
+            failureThreshold: 3
+            periodSeconds: 10
+            initialDelaySeconds: 5
+            timeoutSeconds: 1

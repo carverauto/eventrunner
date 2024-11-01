@@ -1,40 +1,22 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: oathkeeper-rules
+  name: oathkeeper-rules-data
   namespace: eventrunner
 data:
   rules.json: |
     [
-      {
-        "id": "health-check",
-        "match": {
-          "url": "<^/health/(ready|alive|live)$>",
-          "methods": ["GET"]
-        },
-        "authenticators": [
-          {
-            "handler": "noop"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "noop"
-          }
-        ],
+        {
+        "id": "allow-anonymous-with-header-mutator",
+        "version": "v0.40.7",
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
-          "preserve_host": true
-        }
-      },
-      {
-        "id": "well-known",
+          "url": "https://httpbin.org/anything/header"
+        },
         "match": {
-          "url": "<^/decisions($|/.*)$>",
-          "methods": ["GET"]
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/anything/header",
+          "methods": [
+            "GET"
+          ]
         },
         "authenticators": [
           {
@@ -46,7 +28,185 @@ data:
         },
         "mutators": [
           {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "{{ print .Subject }}"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "well-known",
+        "version": "v0.40.7",
+        "upstream": {
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/.well-known/alive",
+          "methods": [
+            "GET"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "{{ print .Subject }}"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "deny-anonymous",
+        "version": "v0.40.7",
+        "upstream": {
+          "url": "https://httpbin.org/anything/deny"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/anything/deny",
+          "methods": [
+            "GET"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "deny"
+        },
+        "mutators": [
+          {
             "handler": "noop"
+          }
+        ],
+        "errors": [
+          {
+            "handler": "json",
+            "config": {
+              "when": [
+                {
+                  "request": {
+                    "header": {
+                      "accept": ["application/json"]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "handler": "redirect",
+            "config": {
+              "when": [
+                {
+                  "request": {
+                    "header": {
+                      "accept": ["text/*"]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "allow-anonymous-with-id-token-mutator",
+        "version": "v0.40.7",
+        "upstream": {
+          "url": "https://httpbin.org/anything/id_token"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/anything/id_token",
+          "methods": [
+            "GET"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "id_token"
+          }
+        ]
+      }, 
+      {
+        "id": "oathkeeper-health",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/health/alive",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
+      },
+      {
+        "id": "decisions-endpoint",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "http://oathkeeper-api.default.svc.cluster.local/decisions",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "jwt",
+            "config": {
+              "jwks_urls": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"],
+              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
+              "target_audience": ["eventrunner"]
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "{{ print .Subject }}",
+                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+                "X-Request-Id": "{{ print .RequestID }}"
+              }
+            }
           }
         ]
       }
