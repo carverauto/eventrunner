@@ -44,6 +44,8 @@ oathkeeper:
     authorizers:
       allow:
         enabled: true
+      deny:
+        enabled: true
 
     mutators:
       header:

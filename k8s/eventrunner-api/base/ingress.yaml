@@ -5,12 +5,16 @@ metadata:
   namespace: eventrunner
   annotations:
     nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-api.default.svc.cluster.local:4456/decisions"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-User,X-Tenant-ID,X-Request-Id"
+    nginx.ingress.kubernetes.io/auth-snippet: |
+      proxy_set_header Authorization $http_authorization;
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_set_header X-Original-URI $request_uri;
       proxy_set_header X-Original-Method $request_method;
       proxy_set_header X-Forwarded-Proto $scheme;
       proxy_set_header X-Forwarded-Host $http_host;
       proxy_set_header X-Forwarded-Uri $request_uri;
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
 spec:
   ingressClassName: nginx
   rules:

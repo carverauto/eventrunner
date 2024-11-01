@@ -38,6 +38,37 @@ data:
         ]
       },
       {
+        "id": "well-known",
+        "version": "v0.40.7",
+        "upstream": {
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive"
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/.well-known/alive",
+          "methods": [
+            "GET"
+          ]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "X-User": "{{ print .Subject }}"
+              }
+            }
+          }
+        ]
+      },
+      {
         "id": "deny-anonymous",
         "version": "v0.40.7",
         "upstream": {
