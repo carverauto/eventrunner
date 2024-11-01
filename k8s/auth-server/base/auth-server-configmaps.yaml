@@ -175,14 +175,62 @@ data:
         ]
       },
       {
+        "id": "api-health",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "<http[s]?://.*:?[0-9]*/.well-known/health>",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
+      },
+      {
+        "id": "test-decisions",
+        "upstream": {
+          "preserve_host": true,
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+        },
+        "match": {
+          "url": "<https?:\\/\\/.*\\/decisions>",
+          "methods": ["GET"]
+        },
+        "authenticators": [
+          {
+            "handler": "anonymous"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
+      },
+      {
         "id": "decisions-endpoint",
         "upstream": {
           "preserve_host": true,
           "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
         },
         "match": {
-          "url": "http://oathkeeper-api.default.svc.cluster.local/decisions",
-          "methods": ["GET"]
+          "url": "http://oathkeeper-api.default.svc.cluster.local:4456/decisions",
+          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
         },
         "authenticators": [
           {
@@ -190,7 +238,8 @@ data:
             "config": {
               "jwks_urls": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"],
               "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
-              "target_audience": ["eventrunner"]
+              "target_audience": ["eventrunner"],
+              "required_scope": ["eventrunner"]
             }
           }
         ],
@@ -202,8 +251,9 @@ data:
             "handler": "header",
             "config": {
               "headers": {
-                "X-User": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+                "X-User": "{{ print .Extra.traits.email }}",
+                "X-Tenant-ID": "{{ print .Extra.traits.tenant_id }}",
+                "X-Roles": "{{ print .Extra.traits.roles }}",
                 "X-Request-Id": "{{ print .RequestID }}"
               }
             }

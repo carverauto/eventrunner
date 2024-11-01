@@ -1,5 +1,9 @@
 oathkeeper:
   config:
+    log:
+      level: debug
+      format: json
+      leak_sensitive_values: true
     serve:
       proxy:
         port: 4455
@@ -13,7 +17,7 @@ oathkeeper:
     access_rules:
       repositories:
         - http://auth-server.eventrunner.svc.cluster.local/rules.json
-      matching_strategy: glob
+      matching_strategy: regexp
 
     errors:
       fallback:
