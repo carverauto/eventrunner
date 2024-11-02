@@ -7,222 +7,6 @@ data:
   rules.json: |
     [
       {
-        "id": "web-portal",
-        "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
-        "match": {
-          "url": "<http[s]?://.*:?[0-9]*/portal/.*>",
-          "methods": ["GET", "POST", "PUT", "DELETE"]
-        },
-        "authenticators": [
-          {
-            "handler": "cookie_session",
-            "config": {
-              "check_session_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/sessions/whoami"
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.traits.tenant_id }}",
-                "X-Roles": "{{ print .Extra.traits.roles }}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "api-access",
-        "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
-          "preserve_host": true
-        },
-        "match": {
-          "url": "http://api.tunnel.threadr.ai/api/<.*>",
-          "methods": ["GET", "POST", "PUT", "DELETE"]
-        },
-        "authenticators": [
-          {
-            "handler": "oauth2_introspection",
-            "config": {
-              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect",
-              "scope_strategy": "exact",
-              "required_scope": ["api:access"],
-              "token_from": {
-                "header": "Authorization"
-              }
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Extra.traits.email }}",
-                "X-Tenant-ID": "{{ print .Extra.traits.tenant_id }}",
-                "X-Roles": "{{ print .Extra.traits.roles }}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "allow-anonymous-with-header-mutator",
-        "version": "v0.40.7",
-        "upstream": {
-          "url": "https://httpbin.org/anything/header"
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/anything/header",
-          "methods": [
-            "GET"
-          ]
-        },
-        "authenticators": [
-          {
-            "handler": "anonymous"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Subject }}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "well-known",
-        "version": "v0.40.7",
-        "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200/.well-known/alive"
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/.well-known/alive",
-          "methods": [
-            "GET"
-          ]
-        },
-        "authenticators": [
-          {
-            "handler": "anonymous"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Subject }}"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "deny-anonymous",
-        "version": "v0.40.7",
-        "upstream": {
-          "url": "https://httpbin.org/anything/deny"
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/anything/deny",
-          "methods": [
-            "GET"
-          ]
-        },
-        "authenticators": [
-          {
-            "handler": "anonymous"
-          }
-        ],
-        "authorizer": {
-          "handler": "deny"
-        },
-        "mutators": [
-          {
-            "handler": "noop"
-          }
-        ],
-        "errors": [
-          {
-            "handler": "json",
-            "config": {
-              "when": [
-                {
-                  "request": {
-                    "header": {
-                      "accept": ["application/json"]
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "handler": "redirect",
-            "config": {
-              "when": [
-                {
-                  "request": {
-                    "header": {
-                      "accept": ["text/*"]
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        ]
-      },
-      {
-        "id": "allow-anonymous-with-id-token-mutator",
-        "version": "v0.40.7",
-        "upstream": {
-          "url": "https://httpbin.org/anything/id_token"
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/anything/id_token",
-          "methods": [
-            "GET"
-          ]
-        },
-        "authenticators": [
-          {
-            "handler": "anonymous"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "id_token"
-          }
-        ]
-      }, 
-      {
         "id": "oathkeeper-health",
         "upstream": {
           "preserve_host": true,
@@ -247,47 +31,29 @@ data:
         ]
       },
       {
-        "id": "api-health",
+        "id": "api-tenant-users",
         "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
+          "preserve_host": true
         },
         "match": {
-          "url": "<http[s]?://.*:?[0-9]*/.well-known/health>",
-          "methods": ["GET"]
+          "url": "<https?://api\\.tunnel\\.threadr\\.ai/api(?:/|$)(.*)>",
+          "methods": ["GET", "POST", "PUT", "DELETE"]
         },
         "authenticators": [
           {
-            "handler": "anonymous"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "noop"
-          }
-        ]
-      },
-      {
-        "id": "decisions-endpoint",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
-        },
-        "match": {
-          "url": "http://oathkeeper-api.default.svc.cluster.local:4456/decisions",
-          "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
-        },
-        "authenticators": [
-          {
-            "handler": "jwt",
+            "handler": "oauth2_introspection",
             "config": {
-              "jwks_urls": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"],
-              "trusted_issuers": ["https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"],
-              "target_audience": ["eventrunner"],
-              "required_scope": ["eventrunner"]
+              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect",
+              "scope_strategy": "exact",
+              "required_scope": ["api:access"],
+              "token_from": {
+                "header": "Authorization"
+              },
+              "introspection_request_headers": {
+                "Accept": "application/json",
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
             }
           }
         ],
@@ -302,7 +68,75 @@ data:
                 "X-User": "{{ print .Extra.traits.email }}",
                 "X-Tenant-ID": "{{ print .Extra.traits.tenant_id }}",
                 "X-Roles": "{{ print .Extra.traits.roles }}",
-                "X-Request-Id": "{{ print .RequestID }}"
+                "Authorization": "{{ print .Authorization }}"
+              }
+            }
+          }
+        ],
+        "errors": [
+          {
+            "handler": "json",
+            "config": {
+              "verbose": true
+            }
+          }
+        ]
+      },
+      {
+        "id": "well-known-openid",
+        "upstream": {
+          "url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com",
+          "preserve_host": true
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/.well-known/openid-configuration",
+          "methods": ["get"]
+        },
+        "authenticators": [
+          {
+            "handler": "noop"
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "noop"
+          }
+        ]
+      },
+      {
+        "id": "decisions-endpoint",
+        "upstream": {
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
+          "preserve_host": true
+        },
+        "match": {
+          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions",
+          "methods": ["get"]
+        },
+        "authenticators": [
+          {
+            "handler": "oauth2_introspection",
+            "config": {
+              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect",
+              "scope_strategy": "exact",
+              "required_scope": ["api:access"]
+            }
+          }
+        ],
+        "authorizer": {
+          "handler": "allow"
+        },
+        "mutators": [
+          {
+            "handler": "header",
+            "config": {
+              "headers": {
+                "x-user": "{{ print .extra.traits.email }}",
+                "x-tenant-id": "{{ print .extra.traits.tenant_id }}",
+                "x-roles": "{{ print .extra.traits.roles }}"
               }
             }
           }
