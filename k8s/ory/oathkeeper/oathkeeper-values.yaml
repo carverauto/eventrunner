@@ -33,6 +33,16 @@ oathkeeper:
             to: https://www.ory.sh/docs
 
     authenticators:
+      oauth2_introspection:
+        enabled: true
+        config:
+          introspection_url: https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect
+
+      cookie_session:
+        enabled: true
+        config:
+          check_session_url: https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/sessions/whoami
+
       anonymous:
         enabled: true
         config:
