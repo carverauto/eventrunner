@@ -23,6 +23,47 @@ func NewHandlers(oryClient *ory.APIClient) *Handlers {
 	return &Handlers{OryClient: oryClient}
 }
 
+/*
+	TODO: Finish this function
+func (h *Handlers) CreateAPICredentials(c *gofr.Context) (interface{}, error) {
+	// Get user info from session headers
+	userID := c.Header("X-User")
+	tenantID := c.Header("X-Tenant-ID")
+
+	// Create OAuth2 client in Ory Hydra
+	client := ory.CreateOAuth2ClientBody{
+		Scope:                   "api:access",
+		GrantTypes:              []string{"client_credentials"},
+		TokenEndpointAuthMethod: "client_secret_post",
+		// Add other required fields
+	}
+
+	createdClient, _, err := h.OryClient.OAuth2API.CreateOAuth2Client(c.Context).
+		CreateOAuth2ClientBody(client).Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Store association in your database
+	apiCreds := models.APICredentials{
+		UserID:   userID,
+		TenantID: tenantID,
+		ClientID: createdClient.ClientId,
+		// Store other metadata
+	}
+
+	_, err = c.Mongo.InsertOne(c, "api_credentials", apiCreds)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"client_id":     createdClient.ClientId,
+		"client_secret": createdClient.ClientSecret,
+	}, nil
+}
+*/
+
 func (h *Handlers) CreateSuperUser(c *gofr.Context) (interface{}, error) {
 	var user models.User
 	if err := c.Bind(&user); err != nil {

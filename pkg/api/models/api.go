@@ -42,11 +42,13 @@ type User struct {
 	Active     bool               `bson:"active" json:"active"`
 }
 
-type APIKey struct {
+type APICredentials struct {
 	ID         uuid.UUID `bson:"_id,omitempty" json:"-"`
+	UserID     uuid.UUID `bson:"user_id" json:"user_id"`
 	KeyID      uuid.UUID `bson:"key_id" json:"id"`
 	TenantID   uuid.UUID `bson:"tenant_id" json:"tenant_id"`
 	CustomerID uuid.UUID `bson:"customer_id" json:"customer_id"`
+	ClientID   string    `bson:"client_id" json:"client_id"`
 	Key        string    `bson:"key" json:"key"`
 	Active     bool      `bson:"active" json:"active"`
 	CreatedAt  time.Time `bson:"created_at" json:"created_at"`
