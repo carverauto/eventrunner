@@ -1,84 +1,4 @@
 oathkeeper:
-  config:
-    log:
-      level: debug
-      format: json
-      leak_sensitive_values: true
-    serve:
-      proxy:
-        port: 4455
-        cors:
-          enabled: true
-      api:
-        port: 4456
-        cors:
-          enabled: true
-
-    access_rules:
-      repositories:
-        - http://auth-server.eventrunner.svc.cluster.local/rules.json
-      matching_strategy: regexp
-
-    errors:
-      fallback:
-        - json
-      handlers:
-        json:
-          enabled: true
-          config:
-            verbose: true
-        redirect:
-          enabled: true
-          config:
-            to: https://www.ory.sh/docs
-
-    authenticators:
-      oauth2_introspection:
-        enabled: true
-        config:
-          introspection_url: https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect
-
-      cookie_session:
-        enabled: true
-        config:
-          check_session_url: https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/sessions/whoami
-
-      anonymous:
-        enabled: true
-        config:
-          subject: guest
-      noop:
-        enabled: true
-      jwt:
-        enabled: true
-        config:
-          jwks_urls:
-            - https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json
-
-    authorizers:
-      allow:
-        enabled: true
-      deny:
-        enabled: true
-
-    mutators:
-      header:
-        enabled: true
-        config:
-          headers:
-            X-User: "{{ print .Subject }}"
-            # You could add some other headers, for example with data from the
-            # session.
-            # X-Some-Arbitrary-Data: "{{ print .Extra.some.arbitrary.data }}"
-      noop:
-        enabled: true
-      id_token:
-        enabled: true
-        config:
-          issuer_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"
-          jwks_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"
-          ttl: "15m"
-
   deployment:
     replicas: 1
     pod:
@@ -101,3 +21,141 @@ oathkeeper:
             periodSeconds: 10
             initialDelaySeconds: 5
             timeoutSeconds: 1
+
+  service:
+    proxy:
+      enabled: true
+      type: ClusterIP
+      port: 4455
+      name: http
+      labels:
+        app: oathkeeper
+    api:
+      enabled: true
+      type: ClusterIP
+      port: 4456
+      name: http
+      labels:
+        app: oathkeeper
+
+  ingress:
+    proxy:
+      enabled: true
+      className: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: threadr-issuer
+      hosts:
+        - host: proxy.tunnel.threadr.ai
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: oathkeeper-proxy-tls
+          hosts:
+            - proxy.tunnel.threadr.ai
+    api:
+      enabled: true
+      className: nginx
+      annotations:
+        cert-manager.io/cluster-issuer: threadr-issuer
+      hosts:
+        - host: api.tunnel.threadr.ai
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: oathkeeper-api-tls
+          hosts:
+            - api.tunnel.threadr.ai
+
+  config:
+    log:
+      level: debug
+      format: json
+      leak_sensitive_values: true
+
+    serve:
+      proxy:
+        port: 4455
+        cors:
+          enabled: true
+          allowed_origins:
+            - "*"
+          allowed_methods:
+            - POST
+            - GET
+            - PUT
+            - PATCH
+            - DELETE
+          allowed_headers:
+            - Authorization
+            - Content-Type
+          exposed_headers:
+            - Content-Type
+          allow_credentials: true
+          debug: true
+      api:
+        port: 4456
+        cors:
+          enabled: true
+
+    access_rules:
+      repositories:
+        - http://auth-server.eventrunner.svc.cluster.local/rules.json
+      matching_strategy: regexp
+
+    errors:
+      fallback:
+        - json
+      handlers:
+        json:
+          enabled: true
+          config:
+            verbose: true
+
+    authenticators:
+      oauth2_introspection:
+        enabled: true
+        config:
+          introspection_url: https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect
+
+      cookie_session:
+        enabled: true
+        config:
+          check_session_url: https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/sessions/whoami
+
+      anonymous:
+        enabled: true
+        config:
+          subject: guest
+
+      noop:
+        enabled: true
+
+      jwt:
+        enabled: true
+        config:
+          jwks_urls:
+            - https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json
+
+    authorizers:
+      allow:
+        enabled: true
+      deny:
+        enabled: true
+
+    mutators:
+      header:
+        enabled: true
+        config:
+          headers:
+            X-User: "{{ print .Subject }}"
+            X-Tenant-ID: "{{ print .Extra.tenant_id }}"
+      noop:
+        enabled: true
+      id_token:
+        enabled: true
+        config:
+          issuer_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com"
+          jwks_url: "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/.well-known/jwks.json"
+          ttl: "15m"
