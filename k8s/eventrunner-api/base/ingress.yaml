@@ -5,29 +5,12 @@ metadata:
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
-    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions"
-    nginx.ingress.kubernetes.io/auth-response-headers: "X-User,X-Tenant-ID,X-Roles"
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
-    nginx.ingress.kubernetes.io/use-regex: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      rewrite ^(/api)$ $1/ permanent;
-      auth_request_set $auth_user $upstream_http_x_user;
-      auth_request_set $auth_tenant_id $upstream_http_x_tenant_id;
-      auth_request_set $auth_roles $upstream_http_x_roles;
-      
-      proxy_set_header X-User $auth_user;
-      proxy_set_header X-Tenant-ID $auth_tenant_id;
-      proxy_set_header X-Roles $auth_roles;
+    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.oathkeeper.svc.cluster.local:4455/decisions"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-User,X-Tenant-ID"
     nginx.ingress.kubernetes.io/auth-snippet: |
       proxy_set_header Authorization $http_authorization;
-      proxy_set_header Host $http_host;
       proxy_set_header X-Original-URI $request_uri;
       proxy_set_header X-Original-Method $request_method;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header Content-Length "";
 spec:
   ingressClassName: nginx
   tls:
@@ -38,8 +21,8 @@ spec:
     - host: api.tunnel.threadr.ai
       http:
         paths:
-          - path: /api(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /api
+            pathType: Prefix
             backend:
               service:
                 name: eventrunner-api

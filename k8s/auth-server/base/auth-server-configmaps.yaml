@@ -6,121 +6,44 @@ metadata:
 data:
   rules.json: |
     [
-      {
-        "id": "oathkeeper-health",
-        "upstream": {
-          "preserve_host": true,
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455"
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/health/alive",
-          "methods": ["GET"]
-        },
-        "authenticators": [
-          {
-            "handler": "noop"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "noop"
-          }
-        ]
+        {
+          "id": "decisions-endpoint",
+          "upstream": {
+            "url": "http://oathkeeper-api.oathkeeper.svc.cluster.local:4456"
+          },
+          "match": {
+            "url": "http://oathkeeper-proxy.oathkeeper.svc.cluster.local/decisions",
+            "methods": ["GET"]
+          },
+          "authenticators": [
+            {
+              "handler": "noop"
+            }
+          ],
+          "authorizer": {
+            "handler": "allow"
+          },
+          "mutators": [
+            {
+              "handler": "noop"
+            }
+          ]
       },
       {
-        "id": "api-tenant-users",
+        "id": "eventrunner-api",
         "upstream": {
           "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
           "preserve_host": true
         },
         "match": {
-          "url": "<https?://api\\.tunnel\\.threadr\\.ai/api(?:/|$)(.*)>",
+          "url": "http://api.tunnel.threadr.ai/<.*>",
           "methods": ["GET", "POST", "PUT", "DELETE"]
         },
         "authenticators": [
           {
             "handler": "oauth2_introspection",
             "config": {
-              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect",
-              "scope_strategy": "exact",
-              "required_scope": ["api:access"],
-              "token_from": {
-                "header": "Authorization"
-              },
-              "introspection_request_headers": {
-                "Accept": "application/json",
-                "Content-Type": "application/x-www-form-urlencoded"
-              }
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "header",
-            "config": {
-              "headers": {
-                "X-User": "{{ print .Extra.traits.email }}",
-                "X-Tenant-ID": "{{ print .Extra.traits.tenant_id }}",
-                "X-Roles": "{{ print .Extra.traits.roles }}",
-                "Authorization": "{{ print .Authorization }}"
-              }
-            }
-          }
-        ],
-        "errors": [
-          {
-            "handler": "json",
-            "config": {
-              "verbose": true
-            }
-          }
-        ]
-      },
-      {
-        "id": "well-known-openid",
-        "upstream": {
-          "url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com",
-          "preserve_host": true
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/.well-known/openid-configuration",
-          "methods": ["get"]
-        },
-        "authenticators": [
-          {
-            "handler": "noop"
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [
-          {
-            "handler": "noop"
-          }
-        ]
-      },
-      {
-        "id": "decisions-endpoint",
-        "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
-          "preserve_host": true
-        },
-        "match": {
-          "url": "http://oathkeeper-proxy.default.svc.cluster.local:4455/decisions",
-          "methods": ["get"]
-        },
-        "authenticators": [
-          {
-            "handler": "oauth2_introspection",
-            "config": {
-              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/oauth2/introspect",
+              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/admin/oauth2/introspect",
               "scope_strategy": "exact",
               "required_scope": ["api:access"]
             }
@@ -134,11 +57,15 @@ data:
             "handler": "header",
             "config": {
               "headers": {
-                "x-user": "{{ print .extra.traits.email }}",
-                "x-tenant-id": "{{ print .extra.traits.tenant_id }}",
-                "x-roles": "{{ print .extra.traits.roles }}"
+                "X-User": "{{ print .Subject }}",
+                "X-Tenant-ID": "{{ print .Extra.tenant_id }}"
               }
             }
+          }
+        ],
+        "errors": [
+          {
+            "handler": "json"
           }
         ]
       }
