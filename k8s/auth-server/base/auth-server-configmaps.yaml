@@ -30,22 +30,21 @@ data:
           ]
       },
       {
-        "id": "eventrunner-api",
+        "id": "api-gateway",
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200",
-          "preserve_host": true
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
         },
         "match": {
-          "url": "http://api.tunnel.threadr.ai/<.*>",
-          "methods": ["GET", "POST", "PUT", "DELETE"]
+          "url": "http://oathkeeper-proxy.oathkeeper.svc.cluster.local:4455/decisions",
+          "methods": ["GET"]
         },
         "authenticators": [
           {
-            "handler": "oauth2_introspection",
+            "handler": "cookie_session",
             "config": {
-              "introspection_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/admin/oauth2/introspect",
-              "scope_strategy": "exact",
-              "required_scope": ["api:access"]
+              "check_session_url": "https://affectionate-brattain-fl0yahcycw.projects.oryapis.com/sessions/whoami",
+              "subject_from": "identity.id",
+              "extra_from": "@this"
             }
           }
         ],
@@ -57,15 +56,9 @@ data:
             "handler": "header",
             "config": {
               "headers": {
-                "X-User": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.tenant_id }}"
+                "X-User-ID": "{{ print .Subject }}"
               }
             }
-          }
-        ],
-        "errors": [
-          {
-            "handler": "json"
           }
         ]
       }

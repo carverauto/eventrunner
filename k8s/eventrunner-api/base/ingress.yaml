@@ -6,11 +6,15 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
     nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.oathkeeper.svc.cluster.local:4455/decisions"
-    nginx.ingress.kubernetes.io/auth-response-headers: "X-User,X-Tenant-ID"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-User-ID"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      auth_request_set $auth_user_id $upstream_http_x_user_id;
+      proxy_set_header X-User-ID $auth_user_id;
     nginx.ingress.kubernetes.io/auth-snippet: |
-      proxy_set_header Authorization $http_authorization;
+      proxy_set_header Cookie $http_cookie;
       proxy_set_header X-Original-URI $request_uri;
       proxy_set_header X-Original-Method $request_method;
+      proxy_set_header Host "oathkeeper-proxy.oathkeeper.svc.cluster.local";
 spec:
   ingressClassName: nginx
   tls:
