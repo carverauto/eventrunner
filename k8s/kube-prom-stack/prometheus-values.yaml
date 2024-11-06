@@ -1,0 +1,39 @@
+# prometheus-values.yaml
+nameOverride: "promstack"
+fullnameOverride: "promstack"
+
+grafana:
+  enabled: true
+  adminPassword: "J4ckr00lz"
+
+  # Service configuration to match your ingress
+  service:
+    name: promstack-grafana
+    port: 80
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+  # Service configuration to match your ingress
+  service:
+    name: promstack-kube-prometheus-prometheus
+    port: 9090
+
+# Add PostgreSQL monitoring
+additionalServiceMonitors:
+  - name: cloudnative-pg
+    selector:
+      matchLabels:
+        postgresql: cloudnative-pg
+    namespaceSelector:
+      matchNames:
+        - cnpg-system
+    endpoints:
+      - port: metrics
+        interval: 30s

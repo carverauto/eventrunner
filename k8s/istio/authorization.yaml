@@ -1,0 +1,14 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: eventrunner-oathkeeper
+  namespace: auth
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: eventrunner-api
+  action: CUSTOM
+  provider:
+    name: ext-authz # opa.default
+  rules:
+    - {}
