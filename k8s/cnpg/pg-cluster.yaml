@@ -1,0 +1,62 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cluster-pg
+  namespace: cnpg-system
+  labels:
+    postgresql: cloudnative-pg
+spec:
+  instances: 3
+
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      shared_buffers: 256MB
+      max_connections: "100"
+
+  # Resource requirements
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "0.5"
+    limits:
+      memory: "1Gi"
+      cpu: "1"
+
+  # Storage configuration
+  storage:
+    size: 15Gi
+    storageClass: local-path
+
+  # Monitoring configuration
+  monitoring:
+    enablePodMonitor: true
+
+  # Bootstrap configuration
+  bootstrap:
+    initdb:
+      database: eventrunner
+      owner: eventrunner
+      secret:
+        name: eventrunner-db-credentials
+
+  managed:
+    roles:
+      - name: eventrunner
+        ensure: present
+        login: true
+        superuser: true
+        passwordSecret:
+          name: eventrunner-db-credentials
+
+      - name: kratos
+        ensure: present
+        login: true
+        superuser: false
+        passwordSecret:
+          name: kratos-db-credentials
+
+  # Backup configuration
+  backup:
+    retentionPolicy: "7d"
+    target: primary

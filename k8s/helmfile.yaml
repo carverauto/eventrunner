@@ -1,0 +1,23 @@
+helmDefaults:
+  createNamespace: false
+releases:
+  - name: hydra
+    chart: ory/hydra
+    namespace: auth
+    values:
+      - ory/hydra/hydra-values.yaml
+  - name: kratos
+    chart: ory/kratos
+    namespace: auth
+    values:
+      - ory/kratos/kratos-values.yaml
+  - name: kratos-ui
+    chart: ./kratos-ui-node/charts
+    namespace: auth
+  - name: oathkeeper
+    chart: ory/oathkeeper
+    namespace: auth
+    values:
+      - ory/oathkeeper/values.yaml
+    needs:
+      - kratos
