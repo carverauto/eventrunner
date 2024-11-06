@@ -4,7 +4,11 @@ fullnameOverride: "promstack"
 
 grafana:
   enabled: true
-  adminPassword: "J4ckr00lz"
+  # Specify the adminpassword on the command line when installing.
+  # helm install promstack prometheus-community/kube-prometheus-stack \
+  # --namespace default \
+  # --create-namespace \
+  # --set grafana.adminPassword=Password123
 
   # Service configuration to match your ingress
   service:

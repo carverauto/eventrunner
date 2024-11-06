@@ -255,8 +255,8 @@ kratos:
             providers:
               - id: github # this is `<provider-id>` in the Authorization callback URL. DO NOT CHANGE IT ONCE SET!
                 provider: github
-                client_id: TODO: replaceme # Replace this with the Client ID
-                client_secret: TODO: replaceme # Replace this with the Client secret
+                client_id: Ov23liSRQYrNXQwMlmOB
+                client_secret: a0d8da2954dbd904bf91cd58e980bc8e55b4c04b
                 issuer_url: https://api.github.com # Replace this with the providers issuer URL
                 mapper_url: "base64://bG9jYWwgY2xhaW1zID0gc3RkLmV4dFZhcignY2xhaW1zJyk7Cgp7CiAgaWRlbnRpdHk6IHsKICAgIHRyYWl0czogewogICAgICBlbWFpbDogY2xhaW1zLmVtYWlsLAogICAgICB1c2VybmFtZTogY2xhaW1zLm5hbWUsCiAgICAgIHBob25lX251bWJlcjoxMjMKICAgIH0sCiAgfSwKfQ=="
                 scope:
