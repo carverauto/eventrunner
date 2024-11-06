@@ -221,7 +221,7 @@ kratos:
       smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
       #template_override_path: /conf/courier-templates
-    dsn: postgresql://kratos:kratos@cluster-pg-rw.cnpg-system.svc.cluster.local:5432/kratos
+    dsn: postgresql://kratos:CHANGEME@cluster-pg-rw.cnpg-system.svc.cluster.local:5432/kratos
     serve:
       public:
         base_url: https://kratos.tunnel.threadr.ai/app
