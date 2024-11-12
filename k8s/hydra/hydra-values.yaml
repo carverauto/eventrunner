@@ -1,4 +1,3 @@
-# -- Number of ORY Hydra members
 replicaCount: 1
 
 image:
@@ -92,8 +91,9 @@ ingress:
     className: "nginx"
     annotations:
       # certmanager.k8s.io/acme-challenge-type: http01
+      cert-manager.io/cluster-issuer: "threadr-issuer"
+      external-dns.alpha.kubernetes.io/hostname: "hydra.tunnel.threadr.ai"
       kubernetes.io/ingress.class: nginx
-
       # cert-manager.io/cluster-issuer: example-issuer
     hosts:
       - host: hydra.tunnel.threadr.ai
@@ -111,7 +111,10 @@ ingress:
     enabled: false
     className: "nginx"
     annotations:
+      cert-manager.io/cluster-issuer: "threadr-issuer"
+      external-dns.alpha.kubernetes.io/hostname: "hydra-admin.tunnel.threadr.ai"
       kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
       # cert-manager.io/cluster-issuer: example-issuer
     hosts:
       - host: hydra-admin.tunnel.threadr.ai
@@ -143,7 +146,7 @@ hydra:
           disable_for_health: true
     secrets:
       system:
-        - TODO: changeme to base64 encoded secret or take from env
+        - IBRJP2olr4FQj8U+v86GSyOD02MkuzW8a5h/vltrl5E=
 
     urls:
       self:
@@ -154,7 +157,7 @@ hydra:
       logout: https://kratos.tunnel.threadr.ai/logout
       identity_provider:
         url: https://kratos.tunnel.threadr.ai/app
-    dsn: postgres://hydra:hydra@cluster-pg-rw.cnpg-system:5432/hydra
+    dsn: postgres://hydra:KHga8rk5LXNJszZ2TvV4Fc@cluster-pg-rw.cnpg-system:5432/hydra
 
     strategies:
       access_token: jwt

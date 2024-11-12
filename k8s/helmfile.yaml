@@ -1,23 +1,32 @@
 helmDefaults:
   createNamespace: false
+
+repositories:
+  - name: ory
+    url: https://k8s.ory.sh/helm/charts
+
 releases:
   - name: hydra
     chart: ory/hydra
     namespace: auth
     values:
-      - ory/hydra/hydra-values.yaml
+      - hydra/hydra-values.yaml
+
   - name: kratos
+    namespace: auth
     chart: ory/kratos
-    namespace: auth
+    version: 0.36.0
     values:
-      - ory/kratos/kratos-values.yaml
+      - kratos/kratos-values.yaml
+
   - name: kratos-ui
-    chart: ./kratos-ui-node/charts
     namespace: auth
+    chart: kratos-ui/charts
+
   - name: oathkeeper
-    chart: ory/oathkeeper
     namespace: auth
+    chart: ory/oathkeeper
     values:
-      - ory/oathkeeper/values.yaml
+      - oathkeeper/values.yaml
     needs:
       - kratos
