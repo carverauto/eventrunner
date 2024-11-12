@@ -1,62 +1,83 @@
+# First, let's create a ConfigMap for our initialization script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-init-script
+  namespace: cnpg-system
+data:
+  init.sql: |
+    CREATE USER kratos WITH PASSWORD '${KRATOS_PASSWORD}' SUPERUSER CREATEDB CREATEROLE;
+    CREATE DATABASE kratos WITH OWNER kratos;
+    \connect kratos
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    CREATE EXTENSION IF NOT EXISTS citext;
+    GRANT ALL PRIVILEGES ON DATABASE kratos TO kratos;
+    GRANT ALL PRIVILEGES ON SCHEMA public TO kratos;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO kratos;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO kratos;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO kratos;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO kratos;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TYPES TO kratos;
+
+---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: cluster-pg
   namespace: cnpg-system
-  labels:
-    postgresql: cloudnative-pg
 spec:
   instances: 3
 
-  # PostgreSQL configuration
   postgresql:
     parameters:
       shared_buffers: 256MB
       max_connections: "100"
+      password_encryption: scram-sha-256
 
-  # Resource requirements
-  resources:
-    requests:
-      memory: "512Mi"
-      cpu: "0.5"
-    limits:
-      memory: "1Gi"
-      cpu: "1"
-
-  # Storage configuration
   storage:
     size: 15Gi
     storageClass: local-path
 
-  # Monitoring configuration
-  monitoring:
-    enablePodMonitor: true
+  superuserSecret:
+    name: cluster-pg-superuser
 
   # Bootstrap configuration
   bootstrap:
     initdb:
-      database: eventrunner
-      owner: eventrunner
-      secret:
-        name: eventrunner-db-credentials
+      database: postgres
+      postInitSQL:
+        - CREATE USER kratos WITH PASSWORD '${KRATOS_PASSWORD}' SUPERUSER CREATEDB CREATEROLE;
+        - CREATE DATABASE kratos OWNER kratos;
+        - ALTER DATABASE kratos SET search_path TO public;
+        - CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        - CREATE EXTENSION IF NOT EXISTS citext;
+        - GRANT ALL PRIVILEGES ON DATABASE kratos TO kratos;
+        - GRANT ALL PRIVILEGES ON SCHEMA public TO kratos;
+        - GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO kratos;
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO kratos;
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO kratos;
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO kratos;
+        - ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TYPES TO kratos;
 
+  # Managed roles configuration
   managed:
     roles:
-      - name: eventrunner
-        ensure: present
-        login: true
-        superuser: true
-        passwordSecret:
-          name: eventrunner-db-credentials
-
       - name: kratos
         ensure: present
         login: true
-        superuser: false
-        passwordSecret:
-          name: kratos-db-credentials
+        superuser: true
+        createdb: true
+        createrole: true
+        inherit: true
+        replication: false
+        bypassrls: false
 
-  # Backup configuration
-  backup:
-    retentionPolicy: "7d"
-    target: primary
+  monitoring:
+    enablePodMonitor: true
+
+  env:
+    - name: KRATOS_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: kratos-db-credentials
+          key: password

@@ -174,7 +174,6 @@ oathkeeper:
             "url": "http://backend-app-charts.auth"
         },
         "match": {
-          #TODO: Update this
           "url": "http://backend-test.enkinineveh.space/<.*>",
           "methods": [
             "GET",
