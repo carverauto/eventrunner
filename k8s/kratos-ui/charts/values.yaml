@@ -1,0 +1,84 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/carverauto/kratos-ui
+  pullPolicy: IfNotPresent
+  tag: "v0.0.2"
+
+imagePullSecrets:
+  - name: ghcr-io-cred
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+serviceAccount:
+  create: false
+  automount: true
+  annotations: {}
+  name: ""
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.org/rewrites: "serviceName=kratos-public rewrite=/"
+    cert-manager.io/cluster-issuer: "threadr-issuer"
+    external-dns.alpha.kubernetes.io/hostname: "kratos.tunnel.threadr.ai"
+    #nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: kratos.tunnel.threadr.ai
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: kratos-ui-charts
+              port:
+                number: 3000
+        - path: /app
+          pathType: Prefix
+          backend:
+            service:
+              name: kratos-public
+              port:
+                number: 80
+  tls:
+    - secretName: auth-services-tls
+      hosts:
+        - kratos.tunnel.threadr.ai
+
+resources: {}
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+volumes: []
+volumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+secret:
+  name: app-env-secret
+
+# Environment variables configuration
+env:
+  secret:
+    CSRF_COOKIE_NAME: "__HOST-kratos.tunnel.threadr.ai"
+    COOKIE_SECRET: "CHANGEME"
+    CSRF_COOKIE_SECRET: "CHANGEME"
+    DANGEROUSLY_DISABLE_SECURE_CSRF_COOKIES: "false"
+    KRATOS_PUBLIC_URL: "https://kratos.tunnel.threadr.ai/app"
+    KRATOS_ADMIN_URL: "http://kratos-admin.auth"
+    HYDRA_ADMIN_URL: "http://hydra-admin.auth:4445"
