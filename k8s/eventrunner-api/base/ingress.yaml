@@ -5,7 +5,7 @@ metadata:
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
-    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.oathkeeper.svc.cluster.local:4455/decisions"
+    nginx.ingress.kubernetes.io/auth-url: "http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-User-ID"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       auth_request_set $auth_user_id $upstream_http_x_user_id;

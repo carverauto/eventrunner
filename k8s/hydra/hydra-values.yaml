@@ -101,7 +101,7 @@ ingress:
           - path: /
             pathType: ImplementationSpecific
     tls:
-      - secretName: eventrunner-api-tls
+      - secretName: auth-services-tls
         hosts:
           - hydra.tunnel.threadr.ai
 
@@ -146,7 +146,7 @@ hydra:
           disable_for_health: true
     secrets:
       system:
-        - IBRJP2olr4FQj8U+v86GSyOD02MkuzW8a5h/vltrl5E=
+        - CHANGEME
 
     urls:
       self:
@@ -157,7 +157,7 @@ hydra:
       logout: https://kratos.tunnel.threadr.ai/logout
       identity_provider:
         url: https://kratos.tunnel.threadr.ai/app
-    dsn: postgres://hydra:KHga8rk5LXNJszZ2TvV4Fc@cluster-pg-rw.cnpg-system:5432/hydra
+    dsn: postgres://hydra:CHANGEME@cluster-pg-rw.cnpg-system:5432/hydra
 
     strategies:
       access_token: jwt

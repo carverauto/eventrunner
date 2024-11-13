@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: auth-services-tls
+  namespace: auth
+spec:
+  secretName: auth-services-tls
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days before expiration
+  issuerRef:
+    kind: ClusterIssuer
+    name: threadr-issuer
+  commonName: "*.tunnel.threadr.ai"
+  dnsNames:
+    - "*.tunnel.threadr.ai"

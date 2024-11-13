@@ -1,0 +1,15 @@
+{
+  "watch": ["src"],
+  "ext": "ts",
+  "exec": "ts-node ./src/index.ts",
+  "env": {
+    "CSRF_COOKIE_NAME": "ax-csrf-cookie",
+    "COOKIE_SECRET": "I_AM_VERY_SECRET",
+    "CSRF_COOKIE_SECRET": "I_AM_VERY_SECRET_TOO",
+    "DANGEROUSLY_DISABLE_SECURE_CSRF_COOKIES": "true",
+    "ORY_SDK_URL": "http://localhost:4433",
+    "KRATOS_PUBLIC_URL": "http://localhost:4433",
+    "KRATOS_ADMIN_URL": "http://localhost:4434",
+    "NODE_ENV": "development"
+  }
+}
