@@ -167,10 +167,10 @@ oathkeeper:
       {
         "id": "eventrunner-rule",
         "upstream": {
-            "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
         },
         "match": {
-          "url": "https://api.tunnel.threadr.ai/<.*>",
+          "url": "http://api.tunnel.threadr.ai/<.*>",
           "methods": [
             "GET",
             "POST",
@@ -183,28 +183,38 @@ oathkeeper:
           {
             "handler": "jwt",
             "config": {
-              "scope_strategy": none  
+              "jwks_urls": [
+                "https://hydra.tunnel.threadr.ai/.well-known/jwks.json"
+              ],
+              "scope_strategy": "none",
+              "token_from": {
+                "header": "Authorization"
+              }
             }
           }
         ],
         "authorizer": {
           "handler": "allow"
         },
-        "mutators": [{
-          "handler": "header",
-          "config": {
-              "headers": {
-                "USER_ID": "{{ print .Subject }}"
-              }
-          }
-        }],
-        "errors":[
+        "mutators": [
           {
-            "handler":"json"
+            "handler": "header",
+            "config": {
+              "headers": {
+                "USER_ID": "{{ print .Subject }}",
+                "X-User-ID": "{{ print .Subject }}"
+              }
+            }
+          }
+        ],
+        "errors": [
+          {
+            "handler": "json"
           }
         ]
-      }
+      } 
     ]
+
   config:
     access_rules:
       matching_strategy: regexp
@@ -244,8 +254,9 @@ oathkeeper:
           enabled: true
           config: {}
     log:
-      level: trace
+      level: debug
       format: json
+      leak_sensitive_values: true
   # -- If set, uses the given JSON Web Key Set as the signing key for the ID Token Mutator. Requires secret.enabled to be set `true`.
   mutatorIdTokenJWKs: ""
   # -- If set, uses the given access rules.

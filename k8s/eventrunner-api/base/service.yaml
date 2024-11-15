@@ -3,11 +3,14 @@ kind: Service
 metadata:
   name: eventrunner-api
   namespace: eventrunner
+  labels:
+    app: eventrunner-api
+    sidecar.istio.io/inject: "true"
 spec:
+  ports:
+    - port: 8200
+      targetPort: 8200
+      protocol: TCP
+      name: http
   selector:
     app: eventrunner-api
-  ports:
-    - protocol: TCP
-      port: 8200
-      targetPort: 8200
-  type: ClusterIP

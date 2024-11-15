@@ -10,6 +10,15 @@ spec:
       app: eventrunner-api
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/logLevel: debug
+        proxy.istio.io/config: |
+          tracing:
+            sampling: 100.0
+            customTags:
+              request.host:
+                header:
+                  name: :authority
       labels:
         app: eventrunner-api
         sidecar.istio.io/inject: "true"
