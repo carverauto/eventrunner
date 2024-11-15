@@ -8,7 +8,7 @@ metadata:
     sidecar.istio.io/inject: "true"
 spec:
   ports:
-    - port: 8200
+    - port: 80
       targetPort: 8200
       protocol: TCP
       name: http

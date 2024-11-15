@@ -167,10 +167,10 @@ oathkeeper:
       {
         "id": "eventrunner-rule",
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
+          "url": "http://eventrunner-api.eventrunner",
         },
         "match": {
-          "url": "http://api.tunnel.threadr.ai/<.*>",
+          "url": "https://api.tunnel.threadr.ai/api/<.*>",
           "methods": [
             "GET",
             "POST",
