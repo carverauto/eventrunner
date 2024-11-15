@@ -1,3 +1,7 @@
+# Default values for kratos.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+# -- Number of replicas in deployment
 replicaCount: 1
 ## -- Deployment update strategy
 strategy:
@@ -11,7 +15,7 @@ image:
   repository: oryd/kratos
   # -- ORY KRATOS VERSION
   # Alternative format: image: oryd/kratos:v0.6.3-alpha.1
-  tag: v1.1.0
+  tag: v1.3.1
   pullPolicy: IfNotPresent
   # imagePullPolicy: Always
 
@@ -33,9 +37,9 @@ service:
     labels: {}
     # -- If you do want to specify annotations, uncomment the following
     # lines, adjust them as necessary, and remove the curly braces after 'annotations:'.
-    annotations:
-      kubernetes.io/ingress.class: nginx
-      kubernetes.io/tls-acme: "true"
+    annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
     # -- Path to the metrics endpoint
     metricsPath: /admin/metrics/prometheus
   public:
@@ -51,9 +55,9 @@ service:
     labels: {}
     # -- If you do want to specify annotations, uncomment the following
     # lines, adjust them as necessary, and remove the curly braces after 'annotations:'.
-    annotations:
-      kubernetes.io/ingress.class: nginx
-      kubernetes.io/tls-acme: "true"
+    annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
   courier:
     enabled: true
     type: ClusterIP
@@ -73,9 +77,9 @@ service:
 ## -- Secret management
 secret:
   # -- switch to false to prevent creating the secret
-  enabled: true
+  enabled: false
   # -- Provide custom name of existing secret, or custom name of secret to be created
-  nameOverride: ""
+  nameOverride: "kratos-secrets"
   # nameOverride: "myCustomSecret"
   # -- Annotations to be added to secret. Annotations are added only when secret is being created. Existing secret will not be modified.
   secretAnnotations:
@@ -91,22 +95,26 @@ secret:
 ## -- Ingress definition
 ingress:
   admin:
-    enabled: true
+    enabled: false
     className: "nginx"
-    annotations: {}
+    annotations:
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
     hosts:
-      - host: kratos-admin.tunnel.threadr.ai
+      - host: kratos-admin.threadr.tunnel.ai
         paths:
           - path: /
             pathType: ImplementationSpecific
     tls:
       - secretName: auth-services-tls
         hosts:
-          - kratos-admin.tunnel.threadr.ai
+          - kratos-admin.threadr.tunnel.ai
   public:
-    enabled: true
+    enabled: false
     className: "nginx"
-    annotations: {}
+      # annotations:
+      # nginx.org/rewrites: "serviceName=kratos-public rewrite=/"
+    # nginx.ingress.kubernetes.io/use-regex: "true"
     hosts:
       - host: kratos.tunnel.threadr.ai
         paths:
@@ -140,6 +148,8 @@ kratos:
 
   # -- Enables database migration
   automigration:
+    annotations:
+      sidecar.istio.io/inject: "false"
     enabled: true
     # -- Configure the way to execute database migration. Possible values: job, initContainer
     # When set to job, the migration will be executed as a job on release or upgrade.
@@ -158,62 +168,98 @@ kratos:
     resources: {}
 
   # -- You can add multiple identity schemas here. You can pass JSON schema using `--set-file` Helm CLI argument.
-  identitySchemas:
-    "identity.default.schema.json": |
-      {
-        "$id": "default",
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "User",
-        "type": "object",
-        "properties": {
-          "traits": {
-            "type": "object",
-            "properties": {
-              "email": {
-                "type": "string",
-                "format": "email",
-                "title": "E-Mail",
-                "ory.sh/kratos": {
-                  "credentials": {
-                    "password": {
-                      "identifier": true
+  kratos:
+    identitySchemas:
+      "identity.default.schema.json": |
+        {
+          "$id": "https://schemas.ory.sh/presets/kratos/identity.email.schema.json",
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "title": "Person",
+          "type": "object",
+          "properties": {
+            "traits": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "title": "E-Mail",
+                  "ory.sh/kratos": {
+                    "credentials": {
+                      "password": {
+                        "identifier": true
+                      },
+                      "webauthn": {
+                        "identifier": true
+                      },
+                      "totp": {
+                        "account_name": true
+                      },
+                      "code": {
+                        "identifier": true,
+                        "via": "email"
+                      },
+                      "passkey": {
+                        "display_name": true
+                      }
+                    },
+                    "recovery": {
+                      "via": "email"
+                    },
+                    "verification": {
+                      "via": "email"
                     }
                   },
-                  "recovery": {
-                    "via": "email"
+                  "maxLength": 320
+                },
+                "tenant_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
                   },
-                  "verification": {
-                    "via": "email"
-                  }
+                  "title": "Tenant IDs",
+                  "description": "The IDs of the tenants this user belongs to"
+                },
+                "project_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "title": "Project ID",
+                  "description": "The Project IDs this user owns"
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "user",
+                      "superuser"
+                    ]
+                  },
+                  "title": "Roles",
+                  "description": "The roles assigned to this user"
                 }
               },
-              "full_name":{
-                "type":"string",
-                "title":"Full Name"
-              },
-              "phone_number":{
-                "type":"string",
-                "title":"Phone Number",
-                "format": "tel"
-              }
-            },
-            "required": [
-              "email"
-            ],
-            "additionalProperties": false
+              "required": [
+                "email"
+              ],
+              "additionalProperties": false
+            }
           }
-        }
-      }
+        } 
 
-  # -- You can customize the emails Kratos is sending (also uncomment config.courier.template_override_path below)
-  emailTemplates: {}
+  # -- you can customize the emails kratos is sending (also uncomment config.courier.template_override_path below)
+  emailtemplates: {}
 
   config:
     courier:
       smtp:
         connection_uri: smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
-      #template_override_path: /conf/courier-templates
-    dsn: postgresql://kratos:CHANGEME@cluster-pg-rw.cnpg-system.svc.cluster.local:5432/kratos
+    dsn: ""
     serve:
       public:
         base_url: https://kratos.tunnel.threadr.ai/app
@@ -224,9 +270,9 @@ kratos:
 
     secrets: {}
     selfservice:
-      default_browser_return_url: http://kratos.tunnel.threadr.ai/
+      default_browser_return_url: https://kratos.tunnel.threadr.ai/
       allowed_return_urls:
-        - https://kratos.tunnel.threadr.ai
+        - https://kratos.tunnel.threadr.ai/
       flows:
         error:
           ui_url: https://kratos.tunnel.threadr.ai/error
@@ -247,10 +293,10 @@ kratos:
             providers:
               - id: github
                 provider: github
-                client_id: Ov23liSRQYrNXQwMlmOB
-                client_secret: 2a8ad5792195065865a5c85caa01559829283872
+                client_id: "{{ .Values.client_id }}"
+                lient_secret: "{{ .Values.client_secret }}"
                 issuer_url: https://api.github.com
-                mapper_url: "base64://bG9jYWwgY2xhaW1zID0gc3RkLmV4dFZhcignY2xhaW1zJyk7Cgp7CiAgaWRlbnRpdHk6IHsKICAgIHRyYWl0czogewogICAgICBlbWFpbDogY2xhaW1zLmVtYWlsLAogICAgICB1c2VybmFtZTogY2xhaW1zLm5hbWUsCiAgICAgIHBob25lX251bWJlcjoxMjMKICAgIH0sCiAgfSwKfQ=="
+                mapper_url: "base64://ewogICJpZGVudGl0eSI6IHsKICAgICJ0cmFpdHMiOiB7CiAgICAgICJlbWFpbCI6ICJ7eyAuY2xhaW1zLmVtYWlsIH19IiwKICAgICAgIm5hbWUiOiAie3sgLmNsYWltcy5uYW1lIH19IiwKICAgICAgInRlbmFudF9pZHMiOiBbImRlZmF1bHQiXSwKICAgICAgInByb2plY3RfaWQiOiAiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwIiwKICAgICAgInJvbGVzIjogWyJ1c2VyIl0KICAgIH0KICB9Cn0="
                 scope:
                   - read:user
                   - user:email
@@ -270,278 +316,343 @@ kratos:
           templates:
             jwt_example_template:
               jwks_url: http://hydra-admin.auth:4445/admin/keys/hydra.jwt.access-token
-              claims_mapper_url: "base64://CmxvY2FsIGNsYWltcyA9IHN0ZC5leHRWYXIoJ2NsYWltcycpOwpsb2NhbCBzZXNzaW9uID0gc3RkLmV4dFZhcignc2Vzc2lvbicpOwoKewogIGNsYWltczogewogICAgaXNzOiBjbGFpbXMuaXNzICsgIi9hZGRpdGlvbmFsLWNvbXBvbmVudCIsCiAgICBzY2hlbWFfaWQ6IHNlc3Npb24uaWRlbnRpdHkuc2NoZW1hX2lkLAogICAgc2Vzc2lvbjogc2Vzc2lvbiwKICB9Cn0="
+              claims_mapper_url: base64://cmxvy2fsignsywltcya9ihn0zc5lehrwyxioj2nsywltcycpowpsb2nhbcbzzxnzaw9uid0gc3rklmv4dfzhcignc2vzc2lvbicpowokewogignsywltczogewogicagaxnzoibjbgfpbxmuaxnzicsgii9hzgrpdglvbmfslwnvbxbvbmvudcisciagicbzy2hlbwffawq6ihnlc3npb24uawrlbnrpdhkuc2nozw1hx2lklaogicagc2vzc2lvbjogc2vzc2lvbiwkicb9cn0=
               ttl: 10m
+
 
     identity:
       default_schema_id: default
       schemas:
         - id: default
-          url: "base64://ew0KICAiJGlkIjogImh0dHBzOi8vc2NoZW1hcy5vcnkuc2gvcHJlc2V0cy9rcmF0b3MvaWRlbnRpdHkuZW1haWwuc2NoZW1hLmpzb24iLA0KICAiJHNjaGVtYSI6ICJodHRwOi8vanNvbi1zY2hlbWEub3JnL2RyYWZ0LTA3L3NjaGVtYSMiLA0KICAidGl0bGUiOiAiUGVyc29uIiwNCiAgInR5cGUiOiAib2JqZWN0IiwNCiAgInByb3BlcnRpZXMiOiB7DQogICAgInRyYWl0cyI6IHsNCiAgICAgICJ0eXBlIjogIm9iamVjdCIsDQogICAgICAicHJvcGVydGllcyI6IHsNCiAgICAgICAgImVtYWlsIjogew0KICAgICAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAgICAgImZvcm1hdCI6ICJlbWFpbCIsDQogICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsDQogICAgICAgICAgIm9yeS5zaC9rcmF0b3MiOiB7DQogICAgICAgICAgICAiY3JlZGVudGlhbHMiOiB7DQogICAgICAgICAgICAgICJwYXNzd29yZCI6IHsNCiAgICAgICAgICAgICAgICAiaWRlbnRpZmllciI6IHRydWUNCiAgICAgICAgICAgICAgfQ0KICAgICAgICAgICAgfSwNCiAgICAgICAgICAgICJyZWNvdmVyeSI6IHsNCiAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCINCiAgICAgICAgICAgIH0sDQogICAgICAgICAgICAidmVyaWZpY2F0aW9uIjogew0KICAgICAgICAgICAgICAidmlhIjogImVtYWlsIg0KICAgICAgICAgICAgfQ0KICAgICAgICAgIH0NCiAgICAgICAgfSwNCiAgICAgICAgImZ1bGxuYW1lIjp7DQogICAgICAgICAgInR5cGUiOiJzdHJpbmciLA0KICAgICAgICAgICJ0aXRsZSI6ICJGdWxsIE5hbWUiDQogICAgICAgIH0sDQogICAgICAgICJwaG9uZV9udW1iZXIiOnsNCiAgICAgICAgICAidHlwZSI6Im51bWJlciIsDQogICAgICAgICAgInRpdGxlIjoiUGhvbmUgTnVtYmVyIg0KICAgICAgICB9DQogICAgICB9LA0KICAgICAgInJlcXVpcmVkIjogWw0KICAgICAgICAiZW1haWwiLA0KICAgICAgICAiZnVsbG5hbWUiLA0KICAgICAgICAicGhvbmVfbnVtYmVyIg0KICAgICAgXSwNCiAgICAgICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IGZhbHNlDQogICAgfQ0KICB9DQp9DQo="
+          url: "base64://ewogICIkaWQiOiAiaHR0cHM6Ly9zY2hlbWFzLm9yeS5zaC9wcmVzZXRzL2tyYXRvcy9pZGVudGl0eS5lbWFpbC5zY2hlbWEuanNvbiIsCiAgIiRzY2hlbWEiOiAiaHR0cDovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC0wNy9zY2hlbWEjIiwKICAidGl0bGUiOiAiUGVyc29uIiwKICAidHlwZSI6ICJvYmplY3QiLAogICJwcm9wZXJ0aWVzIjogewogICAgInRyYWl0cyI6IHsKICAgICAgInR5cGUiOiAib2JqZWN0IiwKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgImVtYWlsIjogewogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgICAgICJmb3JtYXQiOiAiZW1haWwiLAogICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsCiAgICAgICAgICAib3J5LnNoL2tyYXRvcyI6IHsKICAgICAgICAgICAgImNyZWRlbnRpYWxzIjogewogICAgICAgICAgICAgICJwYXNzd29yZCI6IHsKICAgICAgICAgICAgICAgICJpZGVudGlmaWVyIjogdHJ1ZQogICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgIndlYmF1dGhuIjogewogICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlCiAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAidG90cCI6IHsKICAgICAgICAgICAgICAgICJhY2NvdW50X25hbWUiOiB0cnVlCiAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAiY29kZSI6IHsKICAgICAgICAgICAgICAgICJpZGVudGlmaWVyIjogdHJ1ZSwKICAgICAgICAgICAgICAgICJ2aWEiOiAiZW1haWwiCiAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAicGFzc2tleSI6IHsKICAgICAgICAgICAgICAgICJkaXNwbGF5X25hbWUiOiB0cnVlCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9LAogICAgICAgICAgICAicmVjb3ZlcnkiOiB7CiAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCIKICAgICAgICAgICAgfSwKICAgICAgICAgICAgInZlcmlmaWNhdGlvbiI6IHsKICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICB9CiAgICAgICAgICB9LAogICAgICAgICAgIm1heExlbmd0aCI6IDMyMAogICAgICAgIH0sCiAgICAgICAgInRlbmFudF9pZHMiOiB7CiAgICAgICAgICAidHlwZSI6ICJhcnJheSIsCiAgICAgICAgICAiaXRlbXMiOiB7CiAgICAgICAgICAgICJ0eXBlIjogInN0cmluZyIsCiAgICAgICAgICAgICJwYXR0ZXJuIjogIl5bMC05YS1mQS1GXXs4fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXsxMn0kIgogICAgICAgICAgfSwKICAgICAgICAgICJ0aXRsZSI6ICJUZW5hbnQgSURzIiwKICAgICAgICAgICJkZXNjcmlwdGlvbiI6ICJUaGUgSURzIG9mIHRoZSB0ZW5hbnRzIHRoaXMgdXNlciBiZWxvbmdzIHRvIgogICAgICAgIH0sCiAgICAgICAgInByb2plY3RfaWRzIjogewogICAgICAgICAgInR5cGUiOiAiYXJyYXkiLAogICAgICAgICAgIml0ZW1zIjogewogICAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAgICAgICAicGF0dGVybiI6ICJeWzAtOWEtZkEtRl17OH0tWzAtOWEtZkEtRl17NH0tWzAtOWEtZkEtRl17NH0tWzAtOWEtZkEtRl17NH0tWzAtOWEtZkEtRl17MTJ9JCIKICAgICAgICAgIH0sCiAgICAgICAgICAidGl0bGUiOiAiUHJvamVjdCBJRCIsCiAgICAgICAgICAiZGVzY3JpcHRpb24iOiAiVGhlIFByb2plY3QgSURzIHRoaXMgdXNlciBvd25zIgogICAgICAgIH0sCiAgICAgICAgInJvbGVzIjogewogICAgICAgICAgInR5cGUiOiAiYXJyYXkiLAogICAgICAgICAgIml0ZW1zIjogewogICAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAgICAgICAiZW51bSI6IFsKICAgICAgICAgICAgICAiYWRtaW4iLAogICAgICAgICAgICAgICJ1c2VyIiwKICAgICAgICAgICAgICAic3VwZXJ1c2VyIgogICAgICAgICAgICBdCiAgICAgICAgICB9LAogICAgICAgICAgInRpdGxlIjogIlJvbGVzIiwKICAgICAgICAgICJkZXNjcmlwdGlvbiI6ICJUaGUgcm9sZXMgYXNzaWduZWQgdG8gdGhpcyB1c2VyIgogICAgICAgIH0KICAgICAgfSwKICAgICAgInJlcXVpcmVkIjogWwogICAgICAgICJlbWFpbCIKICAgICAgXSwKICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogZmFsc2UKICAgIH0KICB9Cn0="
+
     oauth2_provider:
       url: http://hydra-admin.auth:4445
-## -- Configuration options for the k8s deployment
+## -- configuration options for the k8s deployment
 deployment:
   lifecycle: {}
-  # -- Configure the livenessProbe parameters
-  livenessProbe:
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    failureThreshold: 5
-  # -- Configure the readinessProbe parameters
-  readinessProbe:
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    failureThreshold: 5
-  # -- Configure the startupProbe parameters
-  startupProbe:
-    failureThreshold: 60
-    successThreshold: 1
-    periodSeconds: 1
-    timeoutSeconds: 1
+  # -- configure the livenessprobe parameters
+  livenessprobe:
+    initialdelayseconds: 5
+    periodseconds: 10
+    failurethreshold: 5
+  # -- configure the readinessprobe parameters
+  readinessprobe:
+    initialdelayseconds: 5
+    periodseconds: 10
+    failurethreshold: 5
+  # -- configure the startupprobe parameters
+  startupprobe:
+    failurethreshold: 60
+    successthreshold: 1
+    periodseconds: 1
+    timeoutseconds: 1
 
-  # -- Configure a custom livenessProbe. This overwrites the default object
-  customLivenessProbe: {}
-  # -- Configure a custom readinessProbe. This overwrites the default object
-  customReadinessProbe: {}
-  # -- Configure a custom startupProbe. This overwrites the default object
-  customStartupProbe: {}
+  # -- configure a custom livenessprobe. this overwrites the default object
+  customlivenessprobe: {}
+  # -- configure a custom readinessprobe. this overwrites the default object
+  customreadinessprobe: {}
+  # -- configure a custom startupprobe. this overwrites the default object
+  customstartupprobe: {}
 
-  # -- Array of extra arguments to be passed down to the deployment. Kubernetes args format is expected
+  # -- array of extra arguments to be passed down to the deployment. kubernetes args format is expected
   # - --foo
   # - --sqa-opt-out
-  extraArgs: []
+  extraargs: []
 
-  # -- Array of extra envs to be passed to the deployment. Kubernetes format is expected
-  # - name: FOO
-  #   value: BAR
-  extraEnv: []
-  # -- If you want to mount external volume
-  # For example, mount a secret containing Certificate root CA to verify database
-  # TLS connection.
-  extraVolumes: []
+  # -- array of extra envs to be passed to the deployment. kubernetes format is expected
+  # - name: foo
+  #   value: bar
+  extraenv:
+    - name: DSN
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: dsn
+    - name: SMTP
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: smtp_uri
+    - name: GITHUB_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: github_client_id
+    - name: GITHUB_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: github_client_secret
+  # -- if you want to mount external volume
+  # for example, mount a secret containing certificate root ca to verify database
+  # tls connection.
+  extravolumes: []
   # - name: my-volume
   #   secret:
-  #     secretName: my-secret
-  extraVolumeMounts: []
+  #     secretname: my-secret
+  extravolumemounts: []
   # - name: my-volume
-  #   mountPath: /etc/secrets/my-secret
-  #   readOnly: true
+  #   mountpath: /etc/secrets/my-secret
+  #   readonly: true
 
-  # extraVolumes:
+  # extravolumes:
   #   - name: postgresql-tls
   #     secret:
-  #       secretName: postgresql-root-ca
-  # extraVolumeMounts:
+  #       secretname: postgresql-root-ca
+  # extravolumemounts:
   #   - name: postgresql-tls
-  #     mountPath: "/etc/postgresql-tls"
-  #     readOnly: true
+  #     mountpath: "/etc/postgresql-tls"
+  #     readonly: true
 
-  # -- If you want to add extra init containers. These are processed before the migration init container.
-  extraInitContainers: ""
-  # extraInitContainers: |
+  # -- if you want to add extra init containers. these are processed before the migration init container.
+  extrainitcontainers: ""
+  # extrainitcontainers: |
   #  - name: ...
   #    image: ...
 
-  # -- If you want to add extra sidecar containers.
-  extraContainers: ""
-  # extraContainers: |
+  # -- if you want to add extra sidecar containers.
+  extracontainers: ""
+  # extracontainers: |
   #  - name: ...
   #    image: ...
 
-  # -- Set desired resource parameters
-  #  We usually recommend not to specify default resources and to leave this as a conscious
-  #  choice for the user. This also increases chances charts run on environments with little
-  #  resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # -- set desired resource parameters
+  #  we usually recommend not to specify default resources and to leave this as a conscious
+  #  choice for the user. this also increases chances charts run on environments with little
+  #  resources, such as minikube. if you do want to specify resources, uncomment the following
   #  lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   resources: {}
   #  limits:
   #    cpu: 100m
-  #    memory: 128Mi
+  #    memory: 128mi
   #  requests:
   #    cpu: 100m
-  #  memory: 128Mi
+  #  memory: 128mi
 
-  # -- Pod priority
+  # -- pod priority
   # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
-  priorityClassName: ""
+  priorityclassname: ""
 
-  # -- Node labels for pod assignment.
-  nodeSelector: {}
-  # If you do want to specify node labels, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'nodeSelector:'.
+  # -- node labels for pod assignment.
+  nodeselector: {}
+  # if you do want to specify node labels, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'nodeselector:'.
   #   foo: bar
 
-  # -- Configure node tolerations.
+  # -- configure node tolerations.
   tolerations: []
 
-  # -- Configure node affinity
+  # -- configure node affinity
   affinity: {}
 
-  # -- Configure pod topologySpreadConstraints.
-  topologySpreadConstraints: []
-  # - maxSkew: 1
-  #   topologyKey: topology.kubernetes.io/zone
-  #   whenUnsatisfiable: DoNotSchedule
-  #   labelSelector:
-  #     matchLabels:
+  # -- configure pod topologyspreadconstraints.
+  topologyspreadconstraints: []
+  # - maxskew: 1
+  #   topologykey: topology.kubernetes.io/zone
+  #   whenunsatisfiable: donotschedule
+  #   labelselector:
+  #     matchlabels:
   #       app.kubernetes.io/name: kratos
   #       app.kubernetes.io/instance: kratos
 
-  # -- Configure pod dnsConfig.
-  dnsConfig: {}
+  # -- configure pod dnsconfig.
+  dnsconfig: {}
   #   options:
   #     - name: "ndots"
   #       value: "1"
 
   labels: {}
-  #      If you do want to specify additional labels, uncomment the following
+  #      if you do want to specify additional labels, uncomment the following
   #      lines, adjust them as necessary, and remove the curly braces after 'labels:'.
   #      e.g.  type: app
 
-  annotations: {}
-  #      If you do want to specify annotations, uncomment the following
+  annotations:
+    sidecar.istio.io/inject: "true"
+    traffic.sidecar.istio.io/includeOutboundPorts: "5432"
+
+  #      if you do want to specify annotations, uncomment the following
   #      lines, adjust them as necessary, and remove the curly braces after 'annotations:'.
-  #      e.g.  sidecar.istio.io/rewriteAppHTTPProbers: "true"
+  #      e.g.  sidecar.istio.io/rewriteapphttpprobers: "true"
 
-  # -- The secret specified here will be used to load environment variables with envFrom.
-  # This allows arbitrary environment variables to be provided to the application which is useful for
-  # sensitive values which should not be in a configMap.
-  # This secret is not created by the helm chart and must already exist in the namespace.
+  # -- the secret specified here will be used to load environment variables with envfrom.
+  # this allows arbitrary environment variables to be provided to the application which is useful for
+  # sensitive values which should not be in a configmap.
+  # this secret is not created by the helm chart and must already exist in the namespace.
   # https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#configure-all-key-value-pairs-in-a-secret-as-container-environment-variables
-  # environmentSecretsName:
+  # environmentsecretsname:
 
-  # -- Specify the serviceAccountName value.
-  # In some situations it is needed to provide specific permissions to Kratos deployments.
-  # Like for example installing Kratos on a cluster with a PosSecurityPolicy and Istio.
-  # Uncomment if it is needed to provide a ServiceAccount for the Kratos deployment.
-  serviceAccount:
-    # -- Specifies whether a service account should be created
+  # -- specify the serviceaccountname value.
+  # in some situations it is needed to provide specific permissions to kratos deployments.
+  # like for example installing kratos on a cluster with a possecuritypolicy and istio.
+  # uncomment if it is needed to provide a serviceaccount for the kratos deployment.
+  serviceaccount:
+    # -- specifies whether a service account should be created
     create: true
-    # -- Annotations to add to the service account
+    # -- annotations to add to the service account
     annotations: {}
-    # -- The name of the service account to use. If not set and create is true, a name is generated using the fullname template
+    # -- the name of the service account to use. if not set and create is true, a name is generated using the fullname template
     name: ""
 
-  automountServiceAccountToken: false
+  automountserviceaccounttoken: false
 
-  terminationGracePeriodSeconds: 60
+  terminationgraceperiodseconds: 60
 
-  # -- Specify pod metadata, this metadata is added directly to the pod, and not higher objects
-  podMetadata:
-    # -- Extra pod level labels
+  # -- specify pod metadata, this metadata is added directly to the pod, and not higher objects
+  podmetadata:
+    # -- extra pod level labels
     labels: {}
-    # -- Extra pod level annotations
+    # -- extra pod level annotations
     annotations: {}
 
-  # -- Parameters for the automigration initContainer
+  # -- parameters for the automigration initcontainer
   automigration:
-    # -- Array of extra envs to be passed to the initContainer. Kubernetes format is expected
-    # - name: FOO
-    #   value: BAR
-    extraEnv: []
-  # -- Number of revisions kept in history
-  revisionHistoryLimit: 5
+    # -- array of extra envs to be passed to the initcontainer. kubernetes format is expected
+    # - name: foo
+    #   value: bar
+    extraenv:
+      - name: DSN
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: dsn
+      - name: SMTP
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: smtp_uri
+      - name: GITHUB_CLIENT_ID
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: github_client_id
+      - name: GITHUB_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: github_client_secret
+  # -- number of revisions kept in history
+  revisionhistorylimit: 5
 
-  ## -- Pod level security context
-  podSecurityContext:
-    fsGroupChangePolicy: "OnRootMismatch"
-    runAsNonRoot: true
-    runAsUser: 65534
-    fsGroup: 65534
-    runAsGroup: 65534
-    seccompProfile:
-      type: RuntimeDefault
+  ## -- pod level security context
+  podsecuritycontext:
+    fsgroupchangepolicy: "onrootmismatch"
+    runasnonroot: true
+    runasuser: 65534
+    fsgroup: 65534
+    runasgroup: 65534
+    seccompprofile:
+      type: runtimedefault
 
-## -- Configuration options for the k8s statefulSet
-statefulSet:
+## -- configuration options for the k8s statefulset
+statefulset:
   resources: {}
-  #  We usually recommend not to specify default resources and to leave this as a conscious
-  #  choice for the user. This also increases chances charts run on environments with little
-  #  resources, such as Minikube. If you do want to specify resources, uncomment the following
+  #  we usually recommend not to specify default resources and to leave this as a conscious
+  #  choice for the user. this also increases chances charts run on environments with little
+  #  resources, such as minikube. if you do want to specify resources, uncomment the following
   #  lines, adjust them as necessary, and remove the curly braces after 'resources:'.
   #  limits:
   #    cpu: 100m
-  #    memory: 128Mi
+  #    memory: 128mi
   #  requests:
   #    cpu: 100m
-  #  memory: 128Mi
+  #  memory: 128mi
 
-  # -- Array of extra arguments to be passed down to the StatefulSet. Kubernetes args format is expected
-  extraArgs: []
+  # -- array of extra arguments to be passed down to the statefulset. kubernetes args format is expected
+  extraargs: []
   # - --foo
   # - --sqa-opt-out
 
-  extraEnv: []
-  # -- If you want to mount external volume
-  # For example, mount a secret containing Certificate root CA to verify database
-  # TLS connection.
-  extraVolumes: []
+  extraenv:
+    - name: DSN
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: dsn
+    - name: SMTP
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: smtp_uri
+    - name: GITHUB_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: github_client_id
+    - name: GITHUB_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: github_client_secret
+  # -- if you want to mount external volume
+  # for example, mount a secret containing certificate root ca to verify database
+  # tls connection.
+  extravolumes: []
   # - name: my-volume
   #   secret:
-  #     secretName: my-secret
-  extraVolumeMounts: []
+  #     secretname: my-secret
+  extravolumemounts: []
   # - name: my-volume
-  #   mountPath: /etc/secrets/my-secret
-  #   readOnly: true
+  #   mountpath: /etc/secrets/my-secret
+  #   readonly: true
 
-  # -- If you want to add extra init containers. These are processed before the migration init container.
-  extraInitContainers: ""
-  # extraInitContainers: |
+  # -- if you want to add extra init containers. these are processed before the migration init container.
+  extrainitcontainers: ""
+  # extrainitcontainers: |
   #  - name: ...
   #    image: ...
 
-  # -- If you want to add extra sidecar containers.
-  extraContainers: ""
-  # extraContainers: |
+  # -- if you want to add extra sidecar containers.
+  extracontainers: ""
+  # extracontainers: |
   #  - name: ...
   #    image: ...
 
   annotations: {}
-  #      If you do want to specify annotations, uncomment the following
+  #      if you do want to specify annotations, uncomment the following
   #      lines, adjust them as necessary, and remove the curly braces after 'annotations:'.
-  #      e.g.  sidecar.istio.io/rewriteAppHTTPProbers: "true"
+  #      e.g.  sidecar.istio.io/rewriteapphttpprobers: "true"
 
-  # -- The secret specified here will be used to load environment variables with envFrom.
-  # This allows arbitrary environment variables to be provided to the application which is useful for
-  # sensitive values which should not be in a configMap.
-  # This secret is not created by the helm chart and must already exist in the namespace.
+  # -- the secret specified here will be used to load environment variables with envfrom.
+  # this allows arbitrary environment variables to be provided to the application which is useful for
+  # sensitive values which should not be in a configmap.
+  # this secret is not created by the helm chart and must already exist in the namespace.
   # https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#configure-all-key-value-pairs-in-a-secret-as-container-environment-variables
-  # environmentSecretsName:
+  # environmentsecretsname:
 
   labels: {}
-  #      If you do want to specify additional labels, uncomment the following
+  #      if you do want to specify additional labels, uncomment the following
   #      lines, adjust them as necessary, and remove the curly braces after 'labels:'.
   #      e.g.  type: app
 
-  # -- Pod priority
+  # -- pod priority
   # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
-  priorityClassName: ""
+  priorityclassname: ""
 
-  # -- Node labels for pod assignment.
-  nodeSelector: {}
-  # If you do want to specify node labels, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'nodeSelector:'.
+  # -- node labels for pod assignment.
+  nodeselector: {}
+  # if you do want to specify node labels, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'nodeselector:'.
   #   foo: bar
 
-  # -- Configure node tolerations.
+  # -- configure node tolerations.
   tolerations: []
 
-  # -- Configure node affinity
+  # -- configure node affinity
   affinity: {}
 
-  # -- Configure pod topologySpreadConstraints.
-  topologySpreadConstraints: []
-  # - maxSkew: 1
-  #   topologyKey: topology.kubernetes.io/zone
-  #   whenUnsatisfiable: DoNotSchedule
-  #   labelSelector:
-  #     matchLabels:
+  # -- configure pod topologyspreadconstraints.
+  topologyspreadconstraints: []
+  # - maxskew: 1
+  #   topologykey: topology.kubernetes.io/zone
+  #   whenunsatisfiable: donotschedule
+  #   labelselector:
+  #     matchlabels:
   #       app.kubernetes.io/name: kratos
   #       app.kubernetes.io/instance: kratos
 
-  # -- Configure pod dnsConfig.
-  dnsConfig: {}
+  # -- configure pod dnsconfig.
+  dnsconfig: {}
   #   options:
   #     - name: "ndots"
   #       value: "1"
@@ -550,252 +661,297 @@ statefulSet:
     format: json
     level: trace
 
-    # -- Specify pod metadata, this metadata is added directly to the pod, and not higher objects
-  podMetadata:
-    # -- Extra pod level labels
+    # -- specify pod metadata, this metadata is added directly to the pod, and not higher objects
+  podmetadata:
+    # -- extra pod level labels
     labels: {}
-    # -- Extra pod level annotations
+    # -- extra pod level annotations
     annotations: {}
-  # -- Number of revisions kept in history
-  revisionHistoryLimit: 5
+  # -- number of revisions kept in history
+  revisionhistorylimit: 5
 
-  terminationGracePeriodSeconds: 60
+  terminationgraceperiodseconds: 60
 
-  ## -- Pod level security context
-  podSecurityContext:
-    fsGroupChangePolicy: "OnRootMismatch"
-    runAsNonRoot: true
-    runAsUser: 65534
-    fsGroup: 65534
-    runAsGroup: 65534
-    seccompProfile:
-      type: RuntimeDefault
+  ## -- pod level security context
+  podsecuritycontext:
+    fsgroupchangepolicy: "onrootmismatch"
+    runasnonroot: true
+    runasuser: 65534
+    fsgroup: 65534
+    runasgroup: 65534
+    seccompprofile:
+      type: runtimedefault
 
-## -- Container level security context
-securityContext:
+## -- container level security context
+securitycontext:
   capabilities:
     drop:
-      - ALL
-  readOnlyRootFilesystem: true
-  runAsNonRoot: true
-  runAsUser: 65534
-  runAsGroup: 65534
-  allowPrivilegeEscalation: false
+      - all
+  readonlyrootfilesystem: true
+  runasnonroot: true
+  runasuser: 65534
+  runasgroup: 65534
+  allowprivilegeescalation: false
   privileged: false
-  seccompProfile:
-    type: RuntimeDefault
-  seLinuxOptions:
+  seccompprofile:
+    type: runtimedefault
+  selinuxoptions:
     level: "s0:c123,c456"
 
-## -- Horizontal pod autoscaling configuration
+## -- horizontal pod autoscaling configuration
 autoscaling:
   enabled: false
-  minReplicas: 1
-  maxReplicas: 3
-  targetCPU: {}
-  #   type: Utilization
-  #   averageUtilization: 80
-  targetMemory: {}
-  #   type: Utilization
-  #   averageUtilization: 80
-  # -- Set custom behavior
+  minreplicas: 1
+  maxreplicas: 3
+  targetcpu: {}
+  #   type: utilization
+  #   averageutilization: 80
+  targetmemory: {}
+  #   type: utilization
+  #   averageutilization: 80
+  # -- set custom behavior
   # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#configurable-scaling-behavior
   behavior: {}
 
-## -- Values for initialization job
+## -- values for initialization job
 job:
-  # -- If you do want to specify annotations, uncomment the following
+  # -- if you do want to specify annotations, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'annotations:'.
   annotations:
     helm.sh/hook-weight: "1"
     helm.sh/hook: "pre-install, pre-upgrade"
     helm.sh/hook-delete-policy: "before-hook-creation,hook-succeeded"
+    sidecar.istio.io/inject: "false"  # Disable Istio for the job
   # kubernetes.io/ingress.class: nginx
   # kubernetes.io/tls-acme: "true"
 
-  # -- If you want to add extra sidecar containers.
-  extraContainers: ""
-  # extraContainers: |
+  # -- if you want to add extra sidecar containers.
+  extracontainers: ""
+  # extracontainers: |
   #  - name: ...
   #    image: ...
 
-  # -- If you want to add extra init containers.
-  extraInitContainers: ""
-  # extraInitContainers: |
+  # -- if you want to add extra init containers.
+  extrainitcontainers: ""
+  # extrainitcontainers: |
   #  - name: ...
   #    image: ...
 
-  # -- Array of extra envs to be passed to the job. This takes precedence over deployment variables. Kubernetes format is expected
-  # - name: FOO
-  #   value: BAR
-  extraEnv: []
+  # -- array of extra envs to be passed to the job. this takes precedence over deployment variables. kubernetes format is expected
+  # - name: foo
+  #   value: bar
+  extraenv:
+    - name: DSN
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: dsn
+    - name: SMTP
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: smtp_uri
+    - name: GITHUB_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: github_client_id
+    - name: GITHUB_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: kratos-secrets
+          key: github_client_secret
+    - name: KRATOS_LOG_LEVEL
+      value: "trace"
+    - name: KRATOS_LOG_FORMAT
+      value: "json"
 
-  # -- Node labels for pod assignment.
-  nodeSelector: {}
-  # If you do want to specify node labels, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'nodeSelector:'.
+  # -- node labels for pod assignment.
+  nodeselector: {}
+  # if you do want to specify node labels, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'nodeselector:'.
   #   foo: bar
 
   # -- resource requests and limits for the job
   resources: {}
 
-  # -- Configure node tolerations.
+  # -- configure node tolerations.
   tolerations: []
 
-  # -- If you want to add lifecycle hooks.
+  # -- if you want to add lifecycle hooks.
   lifecycle: ""
   # lifecycle: |
-  #   preStop:
+  #   prestop:
   #     exec:
   #       command: [...]
 
-  # -- Set automounting of the SA token
-  automountServiceAccountToken: false
+  # -- set automounting of the sa token
+  automountserviceaccounttoken: false
 
-  # -- Set sharing process namespace
-  shareProcessNamespace: false
+  # -- set sharing process namespace
+  shareprocessnamespace: false
 
-  # -- Specify the serviceAccountName value.
-  # In some situations it is needed to provide specific permissions to Kratos deployments
-  # Like for example installing Kratos on a cluster with a PosSecurityPolicy and Istio.
-  # Uncomment if it is needed to provide a ServiceAccount for the Kratos deployment.
-  serviceAccount:
-    # -- Specifies whether a service account should be created
+  # -- specify the serviceaccountname value.
+  # in some situations it is needed to provide specific permissions to kratos deployments
+  # like for example installing kratos on a cluster with a possecuritypolicy and istio.
+  # uncomment if it is needed to provide a serviceaccount for the kratos deployment.
+  serviceaccount:
+    # -- specifies whether a service account should be created
     create: true
-    # -- Annotations to add to the service account
+    # -- annotations to add to the service account
     annotations:
       helm.sh/hook-weight: "0"
       helm.sh/hook: "pre-install, pre-upgrade"
       helm.sh/hook-delete-policy: "before-hook-creation"
-    # -- The name of the service account to use. If not set and create is true, a name is generated using the fullname template
+    # -- the name of the service account to use. if not set and create is true, a name is generated using the fullname template
     name: ""
 
-  # -- Specify pod metadata, this metadata is added directly to the pod, and not higher objects
-  podMetadata:
-    # -- Extra pod level labels
+  # -- specify pod metadata, this metadata is added directly to the pod, and not higher objects
+  podmetadata:
+    # -- extra pod level labels
     labels: {}
-    # -- Extra pod level annotations
+    # -- extra pod level annotations
     annotations: {}
 
   spec:
-    # -- Set job back off limit
-    backoffLimit: 10
+    # -- set job back off limit
+    backofflimit: 10
 
-# -- Configuration of the courier
+# -- configuration of the courier
 courier:
   enabled: true
 
-## -- Configuration of the watcher sidecar
+## -- configuration of the watcher sidecar
 watcher:
   enabled: false
   image: oryd/k8s-toolbox:0.0.5
-  # -- Path to mounted file, which wil be monitored for changes. eg: /etc/secrets/my-secret/foo
-  mountFile: ""
-  # -- Specify pod metadata, this metadata is added directly to the pod, and not higher objects
-  podMetadata:
-    # -- Extra pod level labels
+  # -- path to mounted file, which wil be monitored for changes. eg: /etc/secrets/my-secret/foo
+  mountfile: ""
+  # -- specify pod metadata, this metadata is added directly to the pod, and not higher objects
+  podmetadata:
+    # -- extra pod level labels
     labels: {}
-    # -- Extra pod level annotations
+    # -- extra pod level annotations
     annotations: {}
-  # -- Label key used for managing applications
-  watchLabelKey: "ory.sh/watcher"
-  # -- Number of revisions kept in history
-  revisionHistoryLimit: 5
-  automountServiceAccountToken: true
+  # -- label key used for managing applications
+  watchlabelkey: "ory.sh/watcher"
+  # -- number of revisions kept in history
+  revisionhistorylimit: 5
+  automountserviceaccounttoken: true
   resources: {}
 
-# -- SQL cleanup cron job configuration
+# -- sql cleanup cron job configuration
 cleanup:
-  # -- Enable cleanup of stale database rows by periodically running the cleanup sql command
+  # -- enable cleanup of stale database rows by periodically running the cleanup sql command
   enabled: false
 
-  # -- Configure how many records are cleaned per run
-  batchSize: 100
+  # -- configure how many records are cleaned per run
+  batchsize: 100
 
-  # -- Configure how long to wait between each table cleanup
-  sleepTables: 1m0s
+  # -- configure how long to wait between each table cleanup
+  sleeptables: 1m0s
 
-  # -- Configure the youngest records to keep
-  keepLast: 6h
+  # -- configure the youngest records to keep
+  keeplast: 6h
 
-## -- CronJob configuration
+## -- cronjob configuration
 cronjob:
   cleanup:
-    # -- Configure how often the cron job is ran
+    # -- configure how often the cron job is ran
     schedule: "0 */1 * * *"
 
-    # -- Configure the arguments of the entrypoint, overriding the default value
-    customArgs: []
+    # -- configure the arguments of the entrypoint, overriding the default value
+    customargs: []
 
-    # -- Array of extra envs to be passed to the cronjob. This takes precedence over deployment variables. Kubernetes format is expected
-    # - name: FOO
-    #   value: BAR
-    extraEnv: []
+    # -- array of extra envs to be passed to the cronjob. this takes precedence over deployment variables. kubernetes format is expected
+    # - name: foo
+    #   value: bar
+    extraenv:
+      - name: DSN
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: dsn
+      - name: SMTP
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: smtp_uri
+      - name: GITHUB_CLIENT_ID
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: github_client_id
+      - name: GITHUB_CLIENT_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: kratos-secrets
+            key: github_client_secret
 
-    # -- Set custom cron job level labels
+    # -- set custom cron job level labels
     labels: {}
 
-    # -- Set custom cron job level annotations
+    # -- set custom cron job level annotations
     annotations: {}
 
-    # -- Specify pod metadata, this metadata is added directly to the pod, and not higher objects
-    podMetadata:
-      # -- Extra pod level labels
+    # -- specify pod metadata, this metadata is added directly to the pod, and not higher objects
+    podmetadata:
+      # -- extra pod level labels
       labels: {}
 
-      # -- Extra pod level annotations
+      # -- extra pod level annotations
       annotations: {}
 
-    # -- Configure node labels for pod assignment
-    nodeSelector: {}
+    # -- configure node labels for pod assignment
+    nodeselector: {}
 
-    # -- Configure node tolerations
+    # -- configure node tolerations
     tolerations: []
 
-    # -- Configure node affinity
+    # -- configure node affinity
     affinity: {}
 
-    # -- We usually recommend not to specify default resources and to leave this as a conscious choice for the user.
-    #  This also increases chances charts run on environments with little
-    #  resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # -- we usually recommend not to specify default resources and to leave this as a conscious choice for the user.
+    #  this also increases chances charts run on environments with little
+    #  resources, such as minikube. if you do want to specify resources, uncomment the following
     #  lines, adjust them as necessary, and remove the curly braces after 'resources:'.
     #  limits:
     #    cpu: 100m
-    #    memory: 128Mi
+    #    memory: 128mi
     #  requests:
     #    cpu: 100m
-    #  memory: 128Mi
+    #  memory: 128mi
     resources:
       limits: {}
       requests: {}
 
-## -- PodDistributionBudget configuration
+## -- poddistributionbudget configuration
 pdb:
   enabled: false
   spec:
-    minAvailable: ""
-    maxUnavailable: ""
+    minavailable: ""
+    maxunavailable: ""
 
-## -- Parameters for the Prometheus ServiceMonitor objects.
-# Reference: https://docs.openshift.com/container-platform/4.6/rest_api/monitoring_apis/servicemonitor-monitoring-coreos-com-v1.html
-serviceMonitor:
-  # -- switch to true to enable creating the ServiceMonitor
+## -- parameters for the prometheus servicemonitor objects.
+# reference: https://docs.openshift.com/container-platform/4.6/rest_api/monitoring_apis/servicemonitor-monitoring-coreos-com-v1.html
+servicemonitor:
+  # -- switch to true to enable creating the servicemonitor
   enabled: false
-  # -- HTTP scheme to use for scraping.
+  # -- http scheme to use for scraping.
   scheme: http
-  # -- Interval at which metrics should be scraped
-  scrapeInterval: 60s
-  # -- Timeout after which the scrape is ended
-  scrapeTimeout: 30s
-  # -- Provide additional labels to the ServiceMonitor ressource metadata
+  # -- interval at which metrics should be scraped
+  scrapeinterval: 60s
+  # -- timeout after which the scrape is ended
+  scrapetimeout: 30s
+  # -- provide additional labels to the servicemonitor ressource metadata
   labels: {}
-  # -- TLS configuration to use when scraping the endpoint
-  tlsConfig: {}
+  # -- tls configuration to use when scraping the endpoint
+  tlsconfig: {}
 
 configmap:
   # -- switch to false to prevent checksum annotations being maintained and propogated to the pods
-  hashSumEnabled: true
-  # -- If you do want to specify annotations for configmap, uncomment the following
+  hashsumenabled: true
+  # -- if you do want to specify annotations for configmap, uncomment the following
   # lines, adjust them as necessary, and remove the curly braces after 'annotations:'.
   annotations: {}
 

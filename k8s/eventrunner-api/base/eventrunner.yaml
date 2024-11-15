@@ -12,6 +12,7 @@ spec:
     metadata:
       labels:
         app: eventrunner-api
+        sidecar.istio.io/inject: "true"
     spec:
       serviceAccountName: eventrunner-account
       imagePullSecrets:

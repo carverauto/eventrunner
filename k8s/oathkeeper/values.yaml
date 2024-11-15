@@ -140,13 +140,7 @@ ingress:
     # -- En-/Disable the proxy ingress.
     enabled: false
     className: "nginx"
-    annotations:
-      cert-manager.io/cluster-issuer: "threadr-issuer"
-      external-dns.alpha.kubernetes.io/hostname: "auth.tunnel.threadr.ai"
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    #     kubernetes.io/ingress.class: nginx
-    #     kubernetes.io/tls-acme: "true"
-    # -- Configuration for custom default service. This service will be used to handle the response when the configured service in the Ingress rule does not have any active endpoints
+    annotations: {}
     defaultBackend:
       {}
       # service:
@@ -171,9 +165,9 @@ oathkeeper:
   accessRules: |
     [
       {
-        "id": "backend-rule",
+        "id": "eventrunner-rule",
         "upstream": {
-            "url": "http://eventrunner-api.auth"
+            "url": "http://eventrunner-api.eventrunner.svc.cluster.local:8200"
         },
         "match": {
           "url": "https://api.tunnel.threadr.ai/<.*>",
@@ -190,45 +184,6 @@ oathkeeper:
             "handler": "jwt",
             "config": {
               "scope_strategy": none  
-            }
-          }
-        ],
-        "authorizer": {
-          "handler": "allow"
-        },
-        "mutators": [{
-          "handler": "header",
-          "config": {
-              "headers": {
-                "USER_ID": "{{ print .Subject }}"
-              }
-          }
-        }],
-        "errors":[
-          {
-            "handler":"json"
-          }
-        ]
-      },
-      {
-        "id": "location-rule",
-        "match": {
-          "url": "http://location-app-charts.auth/<.*>",
-          "methods": [
-            "GET",
-            "POST",
-            "OPTIONS",
-            "PUT",
-            "PATCH",
-            "HEAD"
-          ]
-        },
-        "authenticators": [
-          {
-            "handler": "jwt",
-            "config": {
-              "scope_strategy": "hierarchic",
-              "required_scope": ["location:read"]
             }
           }
         ],

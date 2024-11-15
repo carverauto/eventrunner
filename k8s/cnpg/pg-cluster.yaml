@@ -25,6 +25,8 @@ kind: Cluster
 metadata:
   name: cluster-pg
   namespace: cnpg-system
+  labels:
+    istio-injection: "disabled"
 spec:
   instances: 3
 

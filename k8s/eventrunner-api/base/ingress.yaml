@@ -14,7 +14,7 @@ metadata:
       proxy_set_header Cookie $http_cookie;
       proxy_set_header X-Original-URI $request_uri;
       proxy_set_header X-Original-Method $request_method;
-      proxy_set_header Host "oathkeeper-proxy.oathkeeper.svc.cluster.local";
+      proxy_set_header Host "oathkeeper-proxy.auth.svc.cluster.local";
 spec:
   ingressClassName: nginx
   tls:

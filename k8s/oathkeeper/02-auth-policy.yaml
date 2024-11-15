@@ -1,0 +1,14 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: eventrunner-oathkeeper
+  namespace: eventrunner
+spec:
+  selector:
+    matchLabels:
+      app: eventrunner-api
+  action: CUSTOM
+  provider:
+    name: oathkeeper-ext-authz
+  rules:
+    - {}  # Empty rules means apply to all requests
