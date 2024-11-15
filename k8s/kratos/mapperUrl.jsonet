@@ -1,0 +1,11 @@
+local claims = std.extVar('claims');
+
+{
+  identity: {
+    traits: {
+      email: claims.email,
+      username: claims.name,
+      phone_number:123
+    },
+  },
+}

@@ -15,6 +15,19 @@
             "credentials": {
               "password": {
                 "identifier": true
+              },
+              "webauthn": {
+                "identifier": true
+              },
+              "totp": {
+                "account_name": true
+              },
+              "code": {
+                "identifier": true,
+                "via": "email"
+              },
+              "passkey": {
+                "display_name": true
               }
             },
             "recovery": {
@@ -23,21 +36,43 @@
             "verification": {
               "via": "email"
             }
-          }
+          },
+          "maxLength": 320
         },
-        "fullname":{
-          "type":"string",
-          "title": "Full Name"
+        "tenant_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "title": "Tenant IDs",
+          "description": "The IDs of the tenants this user belongs to"
         },
-        "phone_number":{
-          "type":"number",
-          "title":"Phone Number"
+        "project_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+          },
+          "title": "Project ID",
+          "description": "The Project IDs this user owns"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user",
+              "superuser"
+            ]
+          },
+          "title": "Roles",
+          "description": "The roles assigned to this user"
         }
       },
       "required": [
-        "email",
-        "fullname",
-        "phone_number"
+        "email"
       ],
       "additionalProperties": false
     }

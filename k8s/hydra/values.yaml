@@ -1,0 +1,153 @@
+replicaCount: 1
+
+image:
+  repository: oryd/hydra
+  tag: v2.2.0
+  pullPolicy: IfNotPresent
+
+service:
+  public:
+    enabled: true
+    type: ClusterIP
+    port: 4444
+    targetPort: 4444
+  admin:
+    enabled: true
+    type: ClusterIP
+    port: 4445
+    targetPort: 4445
+
+secret:
+  enabled: false
+  nameOverride: "hydra-secrets"
+
+hydra:
+  config:
+    serve:
+      public:
+        port: 4444
+      admin:
+        port: 4445
+    urls:
+      self:
+        issuer: https://hydra.tunnel.threadr.ai/
+      login: https://kratos.tunnel.threadr.ai/login
+      consent: https://kratos.tunnel.threadr.ai/consent
+      logout: https://kratos.tunnel.threadr.ai/logout
+    strategies:
+      access_token: jwt
+      jwt:
+        scope_claim: list
+    dsn: ""  # We use env var instead
+
+  automigration:
+    enabled: true
+    type: job
+    annotations:
+      sidecar.istio.io/inject: "false"
+    extraEnv:
+      - name: DSN
+        valueFrom:
+          secretKeyRef:
+            name: hydra-secrets
+            key: dsn
+      - name: LOG_LEVEL
+        value: "debug"
+      - name: LOG_FORMAT
+        value: "json"
+
+job:
+  annotations:
+    helm.sh/hook-weight: "1"
+    helm.sh/hook: "pre-install, pre-upgrade"
+    helm.sh/hook-delete-policy: "before-hook-creation,hook-succeeded"
+    sidecar.istio.io/inject: "false"
+  automountServiceAccountToken: false
+  shareProcessNamespace: false
+
+deployment:
+  extraEnv:
+    - name: DSN
+      valueFrom:
+        secretKeyRef:
+          name: hydra-secrets
+          key: dsn
+    - name: SECRETS_SYSTEM
+      valueFrom:
+        secretKeyRef:
+          name: hydra-secrets
+          key: secretsSystem
+    - name: SECRETS_COOKIE
+      valueFrom:
+        secretKeyRef:
+          name: hydra-secrets
+          key: secretsCookie
+    - name: LOG_LEVEL
+      value: "debug"
+    - name: LOG_FORMAT
+      value: "json"
+
+  annotations:
+    sidecar.istio.io/inject: "true"
+    traffic.sidecar.istio.io/includeOutboundPorts: "5432"
+
+  # Match Kratos probe settings
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 5
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 5
+  startupProbe:
+    failureThreshold: 60
+    successThreshold: 1
+    periodSeconds: 1
+    timeoutSeconds: 1
+
+  podSecurityContext:
+    fsGroupChangePolicy: "OnRootMismatch"
+    runAsNonRoot: true
+    runAsUser: 65534
+    fsGroup: 65534
+    runAsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    allowPrivilegeEscalation: false
+    privileged: false
+    seccompProfile:
+      type: RuntimeDefault
+
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+
+  automountServiceAccountToken: false
+  terminationGracePeriodSeconds: 60
+
+ingress:
+  public:
+    enabled: true
+    className: "nginx"
+    hosts:
+      - host: hydra.tunnel.threadr.ai
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: auth-services-tls
+        hosts:
+          - hydra.tunnel.threadr.ai
+  admin:
+    enabled: false
