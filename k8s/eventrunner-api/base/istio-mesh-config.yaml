@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-mesh-config
+  namespace: istio-system
+data:
+  mesh: |
+    extensionProviders:
+    - name: "ext-authz"
+      envoyExtAuthzHttp:
+        service: "oathkeeper-proxy.auth.svc.cluster.local"
+        port: 4455
+        timeout: "10s"
+        includeRequestHeadersInCheck: ["authorization", "cookie"]
+        headersToUpstreamOnAllow: ["authorization", "cookie"]
+        headersToDownstreamOnDeny: ["content-type", "set-cookie"]
+        includeRequestBodyInCheck: true
+        maxRequestBytes: 8192
+        allowPartialMessage: true
