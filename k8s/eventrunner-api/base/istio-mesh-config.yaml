@@ -8,12 +8,10 @@ data:
     extensionProviders:
     - name: "ext-authz"
       envoyExtAuthzHttp:
-        service: "oathkeeper-proxy.auth.svc.cluster.local"
-        port: 4455
-        timeout: "10s"
-        includeRequestHeadersInCheck: ["authorization", "cookie"]
-        headersToUpstreamOnAllow: ["authorization", "cookie"]
-        headersToDownstreamOnDeny: ["content-type", "set-cookie"]
-        includeRequestBodyInCheck: true
-        maxRequestBytes: 8192
-        allowPartialMessage: true
+        service: "oathkeeper-api.auth.svc.cluster.local"
+        port: 4456
+        timeout: 10s
+        failOpen: false
+        statusOnError: "500"
+        pathPrefix: /decisions
+        includeRequestHeadersInCheck: ["authorization"]

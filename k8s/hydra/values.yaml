@@ -148,6 +148,6 @@ ingress:
     tls:
       - secretName: auth-services-tls
         hosts:
-          - hydra.tunnel.threadr.ai
+          - "*.tunnel.threadr.ai"
   admin:
     enabled: false

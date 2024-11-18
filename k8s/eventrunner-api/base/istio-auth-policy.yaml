@@ -9,6 +9,6 @@ spec:
       app: eventrunner-api
   action: CUSTOM
   provider:
-    name: oathkeeper-ext-authz
+    name: ext-authz
   rules:
     - {}

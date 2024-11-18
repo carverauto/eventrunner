@@ -5,8 +5,6 @@ metadata:
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/upstream-vhost: oathkeeper-proxy.auth.svc.cluster.local
 spec:
   ingressClassName: nginx
   tls:
@@ -21,7 +19,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: oathkeeper-proxy  # Just the service name
+                name: oathkeeper-proxy
                 port:
                   number: 4455
----
