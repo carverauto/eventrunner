@@ -135,7 +135,7 @@ ingress:
     tls:
       - secretName: auth-services-tls
         hosts:
-          - kratos.tunnel.threadr.ai
+          - "*.tunnel.threadr.ai"
 
 log:
   level: debug
@@ -294,7 +294,7 @@ kratos:
               - id: github
                 provider: github
                 client_id: "{{ .Values.client_id }}"
-                lient_secret: "{{ .Values.client_secret }}"
+                client_secret: "{{ .Values.client_secret }}"
                 issuer_url: https://api.github.com
                 mapper_url: "base64://ewogICJpZGVudGl0eSI6IHsKICAgICJ0cmFpdHMiOiB7CiAgICAgICJlbWFpbCI6ICJ7eyAuY2xhaW1zLmVtYWlsIH19IiwKICAgICAgIm5hbWUiOiAie3sgLmNsYWltcy5uYW1lIH19IiwKICAgICAgInRlbmFudF9pZHMiOiBbImRlZmF1bHQiXSwKICAgICAgInByb2plY3RfaWQiOiAiMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwIiwKICAgICAgInJvbGVzIjogWyJ1c2VyIl0KICAgIH0KICB9Cn0="
                 scope:
