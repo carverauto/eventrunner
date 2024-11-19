@@ -24,7 +24,7 @@ func main() {
 	ctx := context.Background()
 
 	// Set up MongoDB
-	db := mongo.New(&mongo.Config{URI: "mongodb://localhost:27017", Database: "eventrunner"})
+	db := mongo.New(&mongo.Config{URI: "mongodb://mongodb.mongo.svc.cluster.local:27017", Database: "eventrunner"})
 
 	// setup a context with a timeout
 	dbCtx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
@@ -47,12 +47,12 @@ func main() {
 	h := handlers.NewHandlers(apiClient)
 
 	// Enable OAuth
-	app.EnableOAuth(os.Getenv("JWKS_SERVER"), 20)
+	// app.EnableOAuth(os.Getenv("JWKS_SERVER"), 20)
 
 	// Set up routes
-	app.POST("/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
-	app.POST("/tenants/:tenant_id/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
-	app.GET("/tenants/{tenant_id}/users", middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser", "tenant_admin")))
+	app.POST("/api/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
+	app.POST("/api/tenants/:tenant_id/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
+	app.GET("/api/tenants/{tenant_id}/users", middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser", "tenant_admin")))
 
 	// Run the application
 	app.Run()

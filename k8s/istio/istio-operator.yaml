@@ -1,10 +1,11 @@
-apiVersion: v1
-kind: ConfigMap
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
 metadata:
-  name: istio-mesh-config
+  name: istio-control-plane
   namespace: istio-system
-data:
-  mesh: |
+spec:
+  profile: default  # Use the profile that matches your installation
+  meshConfig:
     extensionProviders:
     - name: "ext-authz"
       envoyExtAuthzHttp:
@@ -15,3 +16,4 @@ data:
         statusOnError: "500"
         pathPrefix: /decisions
         includeRequestHeadersInCheck: ["authorization"]
+

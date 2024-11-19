@@ -38,7 +38,17 @@ hydra:
       access_token: jwt
       jwt:
         scope_claim: list
+    oidc:
+      subject_identifiers:
+        supported_types:
+          - public
+        pairwise:
+          salt: U29tZVJhbmRvbVN0cmluZw
     dsn: ""  # We use env var instead
+    oauth2:
+      expose:
+        extra_token_claims:
+          traits: "identity.traits"
 
   automigration:
     enabled: true

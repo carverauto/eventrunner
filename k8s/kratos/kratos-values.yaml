@@ -212,23 +212,11 @@ kratos:
                   },
                   "maxLength": 320
                 },
-                "tenant_ids": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-                  },
-                  "title": "Tenant IDs",
-                  "description": "The IDs of the tenants this user belongs to"
-                },
-                "project_ids": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-                  },
-                  "title": "Project ID",
-                  "description": "The Project IDs this user owns"
+                "tenant_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                  "title": "Tenant ID",
+                  "description": "The primary tenant this user belongs to"
                 },
                 "roles": {
                   "type": "array",
