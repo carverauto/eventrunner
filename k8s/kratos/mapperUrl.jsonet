@@ -5,7 +5,7 @@ local claims = std.extVar('claims');
     traits: {
       email: claims.email,
       username: claims.name,
-      phone_number:123
+      tenant_id:123
     },
   },
 }

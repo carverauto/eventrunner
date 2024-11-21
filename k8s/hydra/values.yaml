@@ -23,10 +23,6 @@ secret:
 
 hydra:
   config:
-    oauth2:
-      expose:
-        extra_token_claims:
-          traits: "identity.traits"
     serve:
       public:
         port: 4444
@@ -48,6 +44,13 @@ hydra:
           - public
         pairwise:
           salt: U29tZVJhbmRvbVN0cmluZw
+      dynamic_client_registration:
+        default_scope:
+          - openid
+          - offline
+          - profile
+          - email
+
     dsn: ""  # We use env var instead
 
   automigration:
