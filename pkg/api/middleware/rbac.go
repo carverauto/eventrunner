@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"fmt"
+
 	"github.com/carverauto/eventrunner/pkg/errors"
 	"github.com/golang-jwt/jwt/v5"
 	"gofr.dev/pkg/gofr"
@@ -36,6 +38,8 @@ func Adapt(h HandlerFunc, middlewares ...Middleware) gofr.Handler {
 
 // RequireRole is a middleware that checks if the user has the required role.
 func RequireRole(roles ...string) Middleware {
+	fmt.Println("RequireRole middleware")
+
 	return func(next Handler) Handler {
 		return HandlerFunc(func(c *gofr.Context) (interface{}, error) {
 			// Retrieve the JWT claim from the context

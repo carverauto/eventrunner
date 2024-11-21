@@ -203,7 +203,8 @@ oathkeeper:
               "headers": {
                 "USER_ID": "{{ print .Subject }}",
                 "X-User-ID": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.tenant_id }}"
+                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
+                "X-User-Email": "{{ print .Extra.email }}"
               }
             }
           }
@@ -248,6 +249,9 @@ oathkeeper:
         config:
           headers:
             USER_ID: "{{ print .Subject }}"
+            X-User-ID: "{{ print .Subject }}"
+            X-User-Email: "{{ print .Extra.email }}"
+            X-Tenant-ID: "{{ print .Extra.tenant_id }}"
 
     errors:
       handlers:

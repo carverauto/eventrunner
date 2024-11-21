@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eventrunner-api
+  name: eventrunner
   namespace: eventrunner
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: eventrunner-api
+      app: eventrunner
   template:
     metadata:
       labels:
-        app: eventrunner-api
+        app: eventrunner
     spec:
       serviceAccountName: eventrunner-account
       imagePullSecrets:
         - name: ghcr-io-cred
       containers:
         - name: eventrunner-api
-          image: ghcr.io/carverauto/eventrunner-api:v0.0.11
+          image: ghcr.io/carverauto/eventrunner:v0.0.23
           imagePullPolicy: Always
           volumeMounts:
             - name: config
