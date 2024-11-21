@@ -284,7 +284,7 @@ kratos:
                 client_id: "{{ .Values.client_id }}"
                 client_secret: "{{ .Values.client_secret }}"
                 issuer_url: https://api.github.com
-                mapper_url: "base64://ewogIGlkZW50aXR5OiB7CiAgICB0cmFpdHM6IHsKICAgICAgZW1haWw6IHt7IC5jbGFpbXMuZW1haWwgfX0sCiAgICAgIG5hbWU6IHt7IC5jbGFpbXMubmFtZSB9fSwKICAgICAgdGVuYW50X2lkOiAwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAsCiAgICAgIHJvbGVzOiBbdXNlcl0KICAgIH0KICB9"
+                mapper_url: "base64://bG9jYWwgY2xhaW1zID0gc3RkLmV4dFZhcignY2xhaW1zJyk7Cgp7CiAgaWRlbnRpdHk6IHsKICAgIHRyYWl0czogewogICAgICBlbWFpbDogY2xhaW1zLmVtYWlsLAogICAgICB1c2VybmFtZTogY2xhaW1zLm5hbWUsCiAgICAgIHRlbmFudF9pZDoxMjMKICAgIH0sCiAgfSwKfQo="
                 scope:
                   - read:user
                   - user:email
