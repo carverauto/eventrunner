@@ -23,6 +23,10 @@ secret:
 
 hydra:
   config:
+    oauth2:
+      expose:
+        extra_token_claims:
+          traits: "identity.traits"
     serve:
       public:
         port: 4444
@@ -45,10 +49,6 @@ hydra:
         pairwise:
           salt: U29tZVJhbmRvbVN0cmluZw
     dsn: ""  # We use env var instead
-    oauth2:
-      expose:
-        extra_token_claims:
-          traits: "identity.traits"
 
   automigration:
     enabled: true
@@ -97,9 +97,9 @@ deployment:
     - name: LOG_FORMAT
       value: "json"
 
-  annotations:
-    sidecar.istio.io/inject: "true"
-    traffic.sidecar.istio.io/includeOutboundPorts: "5432"
+  #annotations:
+  #  sidecar.istio.io/inject: "true"
+  #  traffic.sidecar.istio.io/includeOutboundPorts: "5432"
 
   # Match Kratos probe settings
   livenessProbe:

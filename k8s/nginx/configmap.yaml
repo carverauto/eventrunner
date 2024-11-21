@@ -7,6 +7,7 @@ data:
   enable-real-ip: "true"
   proxy-buffer-size: "16k"
   proxy-headers-hash-max-size: "1024"
+#  proxy-pass-params: "on"
   proxy-body-size: "0"
   real-ip-header: "X-Forwarded-For"
   use-forwarded-headers: "true"
