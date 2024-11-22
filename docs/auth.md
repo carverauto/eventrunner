@@ -101,7 +101,7 @@ Get the address for the `jwks.json` file and set it in the .env file or k8s mani
         "tenant_id",
         "roles"
       ],
-      "additionalProperties": false
+      "additionalProperties": true
     }
   }
 }
