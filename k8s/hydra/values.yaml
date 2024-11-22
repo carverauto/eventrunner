@@ -38,6 +38,12 @@ hydra:
       access_token: jwt
       jwt:
         scope_claim: list
+    oauth2:
+      expose_internal_errors: true
+      allowed_top_level_claims:
+        - email
+        - tenant_id
+      mirror_top_level_claims: true
     oidc:
       subject_identifiers:
         supported_types:

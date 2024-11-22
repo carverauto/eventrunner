@@ -167,7 +167,7 @@ oathkeeper:
       {
         "id": "eventrunner-rule",
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner",
+          "url": "http://eventrunner-api.eventrunner"
         },
         "match": {
           "url": "https://api.tunnel.threadr.ai/api/<.*>",
@@ -198,6 +198,15 @@ oathkeeper:
         },
         "mutators": [
           {
+            "handler": "id_token",
+            "config": {
+              "issuer_url": "https://hydra.tunnel.threadr.ai/",
+              "jwks_url": "file:///etc/secrets/mutator.id_token.jwks.json",
+              "ttl": "60s",
+              "claims": "{\"tenant_id\":\"{{ print .Extra.tenant_id }}\",\"email\":\"{{ print .Extra.email }}\",\"aud\":[\"https://api.tunnel.threadr.ai\"]}"
+            }
+          },
+          {
             "handler": "header",
             "config": {
               "headers": {
@@ -214,7 +223,7 @@ oathkeeper:
             "handler": "json"
           }
         ]
-      } 
+      }
     ]
 
   config:
@@ -244,6 +253,12 @@ oathkeeper:
       deny:
         enabled: true
     mutators:
+      id_token:
+        enabled: true
+        config:
+          issuer_url: "https://hydra.tunnel.threadr.ai/"
+          jwks_url: "file:///etc/secrets/mutator.id_token.jwks.json"
+          ttl: "60s"
       header:
         enabled: true
         config:
@@ -315,11 +330,17 @@ deployment:
   lifecycle: {}
   # -- Configure the livenessProbe parameters
   livenessProbe:
+    httpGet:
+      path: /health/alive
+      port: 4456
     initialDelaySeconds: 5
     periodSeconds: 10
     failureThreshold: 5
   # -- Configure the readinessProbe parameters
   readinessProbe:
+    httpGet:
+      path: /health/alive
+      port: 4456
     initialDelaySeconds: 5
     periodSeconds: 10
     failureThreshold: 5
@@ -365,13 +386,19 @@ deployment:
   extraArgs: []
 
   # -- Extra volumes you can attach to the pod.
-  extraVolumes: []
+  extraVolumes:
+    - name: jwks
+      secret:
+        secretName: oathkeeper-jwks
   # - name: my-volume
   #   secret:
   #     secretName: my-secret
 
   # -- Extra volume mounts, allows mounting the extraVolumes to the container.
-  extraVolumeMounts: []
+  extraVolumeMounts:
+    - name: jwks
+      mountPath: "/etc/secrets"
+      readOnly: true
   # - name: my-volume
   #   mountPath: /etc/secrets/my-secret
   #   readOnly: true

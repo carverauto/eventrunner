@@ -62,7 +62,7 @@
               "required": [
                 "email"
               ],
-              "additionalProperties": false
+              "additionalProperties": true
             }
           }
         }
