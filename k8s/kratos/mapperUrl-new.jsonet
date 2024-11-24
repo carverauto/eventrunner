@@ -1,9 +1,0 @@
-{
-  "identity": {
-    "traits": {
-      "email": "{{ .claims.email }}",
-      "name": "{{ .claims.name }}",
-      "tenant_id": "00000000-0000-0000-0000-000000000000",
-      "roles": ["user"]
-    }
-  }

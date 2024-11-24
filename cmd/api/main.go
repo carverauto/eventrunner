@@ -52,7 +52,8 @@ func main() {
 	app.POST("/api/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
 	app.POST("/api/tenants/{tenant_id}/users", middleware.Adapt(h.CreateUser, middleware.RequireRole("superuser", "tenant_admin")))
 
-	app.GET("/api/tenants/{tenant_id}/users", middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser", "tenant_admin")))
+	app.GET("/api/tenants/{tenant_id}/users",
+		middleware.Adapt(h.GetAllUsers, middleware.RequireRole("superuser"), middleware.RequireTenant))
 
 	// Add the debug headers middleware
 	app.UseMiddleware(middleware.DebugHeadersMiddleware())

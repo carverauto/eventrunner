@@ -1,12 +1,9 @@
 package middleware
 
 import (
-	"fmt"
-
+	customctx "github.com/carverauto/eventrunner/pkg/context"
 	"github.com/carverauto/eventrunner/pkg/errors"
-	"github.com/golang-jwt/jwt/v5"
 	"gofr.dev/pkg/gofr"
-	gofrMiddleware "gofr.dev/pkg/gofr/http/middleware"
 )
 
 // Handler is an interface that wraps the basic Handle method.
@@ -36,44 +33,111 @@ func Adapt(h HandlerFunc, middlewares ...Middleware) gofr.Handler {
 	}
 }
 
-// RequireRole is a middleware that checks if the user has the required role.
-func RequireRole(roles ...string) Middleware {
-	fmt.Println("RequireRole middleware")
+// getCustomContext extracts the custom context from the request context
+func getCustomContext(c *gofr.Context) (customctx.Context, error) {
+	ctx := c.Request.Context()
+	customCtxVal := ctx.Value("customCtx")
+	if customCtxVal == nil {
+		return nil, errors.NewAppError(500, "custom context not found")
+	}
 
+	customCtx, ok := customCtxVal.(customctx.Context)
+	if !ok {
+		return nil, errors.NewAppError(500, "invalid custom context type")
+	}
+
+	return customCtx, nil
+}
+
+// RequireRole is a middleware that checks if the user has any of the required roles
+func RequireRole(roles ...string) Middleware {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(c *gofr.Context) (interface{}, error) {
-			// Retrieve the JWT claim from the context
-			claimData := c.Context.Value(gofrMiddleware.JWTClaim)
-
-			// Assert that the claimData is of type jwt.MapClaims
-			claims, ok := claimData.(jwt.MapClaims)
-			if !ok {
-				return nil, errors.NewInvalidParamError("JWT claims")
+			customCtx, err := getCustomContext(c)
+			if err != nil {
+				return nil, err
 			}
 
-			// Check if the user has the required role
-			userRole, ok := claims["role"].(string)
+			// Get role from X-User-Role header (stored as claim)
+			userRole, ok := customCtx.GetStringClaim("X-User-Role")
 			if !ok {
-				return nil, errors.NewMissingParamError("role")
+				return nil, errors.NewMissingParamError("X-User-Role header")
 			}
 
+			// Check if user has any of the required roles
+			hasRole := false
 			for _, role := range roles {
 				if userRole == role {
-					return next.Handle(c)
+					hasRole = true
+					break
 				}
 			}
 
-			return nil, errors.NewForbiddenError("Insufficient permissions")
+			if !hasRole {
+				return nil, errors.NewForbiddenError("Insufficient permissions")
+			}
+
+			return next.Handle(c)
 		})
 	}
 }
 
-// GetJWTClaims is a helper function to retrieve JWT claims from the context.
-func GetJWTClaims(c *gofr.Context) (jwt.MapClaims, error) {
-	claimData := c.Context.Value(gofrMiddleware.JWTClaim)
-	claims, ok := claimData.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.NewInvalidParamError("JWT claims")
+// RequireTenant is a middleware that ensures a tenant ID is present
+func RequireTenant(next Handler) Handler {
+	return HandlerFunc(func(c *gofr.Context) (interface{}, error) {
+		customCtx, err := getCustomContext(c)
+		if err != nil {
+			return nil, err
+		}
+
+		tenantID, ok := customCtx.GetStringClaim("X-Tenant-ID")
+		if !ok || tenantID == "" {
+			return nil, errors.NewMissingParamError("X-Tenant-ID header")
+		}
+
+		return next.Handle(c)
+	})
+}
+
+// RequireUser is a middleware that ensures a user ID is present
+func RequireUser(next Handler) Handler {
+	return HandlerFunc(func(c *gofr.Context) (interface{}, error) {
+		customCtx, err := getCustomContext(c)
+		if err != nil {
+			return nil, err
+		}
+
+		userID, ok := customCtx.GetStringClaim("X-User-ID")
+		if !ok || userID == "" {
+			return nil, errors.NewMissingParamError("X-User-ID header")
+		}
+
+		return next.Handle(c)
+	})
+}
+
+// GetAuthClaims extracts the relevant authentication claims from the custom context
+func GetAuthClaims(c *gofr.Context) (map[string]string, error) {
+	customCtx, err := getCustomContext(c)
+	if err != nil {
+		return nil, err
 	}
+
+	claims := make(map[string]string)
+
+	// Extract common auth claims
+	if userID, ok := customCtx.GetStringClaim("X-User-ID"); ok {
+		claims["user_id"] = userID
+	}
+	if tenantID, ok := customCtx.GetStringClaim("X-Tenant-ID"); ok {
+		claims["tenant_id"] = tenantID
+	}
+	if userRole, ok := customCtx.GetStringClaim("X-User-Role"); ok {
+		claims["user_role"] = userRole
+	}
+	if email, ok := customCtx.GetStringClaim("X-User-Email"); ok {
+		claims["email"] = email
+	}
+
 	return claims, nil
 }
