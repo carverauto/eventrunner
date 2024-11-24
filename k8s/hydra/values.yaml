@@ -43,6 +43,7 @@ hydra:
       allowed_top_level_claims:
         - email
         - tenant_id
+        - roles
       mirror_top_level_claims: true
     oidc:
       subject_identifiers:

@@ -211,25 +211,6 @@ kratos:
                     }
                   },
                   "maxLength": 320
-                },
-                "tenant_id": {
-                  "type": "string",
-                  "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-                  "title": "Tenant ID",
-                  "description": "The primary tenant this user belongs to"
-                },
-                "roles": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": [
-                      "admin",
-                      "user",
-                      "superuser"
-                    ]
-                  },
-                  "title": "Roles",
-                  "description": "The roles assigned to this user"
                 }
               },
               "required": [
@@ -284,11 +265,12 @@ kratos:
                 client_id: "{{ .Values.client_id }}"
                 client_secret: "{{ .Values.client_secret }}"
                 issuer_url: https://api.github.com
-                mapper_url: "base64://bG9jYWwgY2xhaW1zID0gc3RkLmV4dFZhcignY2xhaW1zJyk7Cgp7CiAgaWRlbnRpdHk6IHsKICAgIHRyYWl0czogewogICAgICBlbWFpbDogY2xhaW1zLmVtYWlsLAogICAgICB1c2VybmFtZTogY2xhaW1zLm5hbWUsCiAgICAgIHRlbmFudF9pZDogMDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAwCiAgICB9LAogIH0sCg=="
+                mapper_url: "base64://bG9jYWwgY2xhaW1zID0gc3RkLmV4dFZhcignY2xhaW1zJyk7CmxvY2FsIHNlc3Npb24gPSBzdGQuZXh0VmFyKCdzZXNzaW9uJyk7Cgp7CiAgY2xhaW1zOiB7CiAgICBpc3M6IGNsYWltcy5pc3MgKyAvYWRkaXRpb25hbC1jb21wb25lbnQsCiAgICBzY2hlbWFfaWQ6IHNlc3Npb24uaWRlbnRpdHkuc2NoZW1hX2lkLAogICAgc2Vzc2lvbjogc2Vzc2lvbiwKICB9LAogIGlkZW50aXR5OiB7CiAgICB0cmFpdHM6IHsKICAgICAgZW1haWw6IGNsYWltcy5lbWFpbCwKICAgICAgdXNlcm5hbWU6IGNsYWltcy5uYW1lLAogICAgfSwKICAgIG1ldGFkYXRhX3B1YmxpYzogewogICAgICAgIHRlbmFudF9pZDogY2xhaW1zLnRlbmFudF9pZCwKICAgIH0sCiAgICBtZXRhZGF0YV9hZG1pbjogewogICAgICByb2xlczogcm9sZXMsCiAgICAgIHRlbmFudF9pZDogY2xhaW1zLnRlbmFudF9pZCwKICAgIH0KICB9Cn0="
                 scope:
                   - read:user
                   - user:email
                   - user:tenant_id
+                  - user:roles
                 requested_claims:
                   id_token:
                     email:
@@ -296,6 +278,8 @@ kratos:
                     username:
                       essential: true
                     tenant_id:
+                      essential: true
+                    roles:
                       essential: true
           enabled: true
 
@@ -305,7 +289,7 @@ kratos:
           templates:
             jwt_example_template:
               jwks_url: http://hydra-admin.auth:4445/admin/keys/hydra.jwt.access-token
-              claims_mapper_url: base64://CmxvY2FsIGNsYWltcyA9IHN0ZC5leHRWYXIoJ2NsYWltcycpOwpsb2NhbCBzZXNzaW9uID0gc3RkLmV4dFZhcignc2Vzc2lvbicpOwoKewogIGNsYWltczogewogICAgaXNzOiBjbGFpbXMuaXNzICsgIi9hZGRpdGlvbmFsLWNvbXBvbmVudCIsCiAgICBzY2hlbWFfaWQ6IHNlc3Npb24uaWRlbnRpdHkuc2NoZW1hX2lkLAogICAgc2Vzc2lvbjogc2Vzc2lvbiwKICB9Cn0=
+              claims_mapper_url: base64://bG9jYWwgY2xhaW1zID0gc3RkLmV4dFZhcignY2xhaW1zJyk7CmxvY2FsIHNlc3Npb24gPSBzdGQuZXh0VmFyKCdzZXNzaW9uJyk7Cgp7CiAgY2xhaW1zOiB7CiAgICBpc3M6IGNsYWltcy5pc3MgKyAvYWRkaXRpb25hbC1jb21wb25lbnQsCiAgICBzY2hlbWFfaWQ6IHNlc3Npb24uaWRlbnRpdHkuc2NoZW1hX2lkLAogICAgc2Vzc2lvbjogc2Vzc2lvbiwKICB9LAogIGlkZW50aXR5OiB7CiAgICB0cmFpdHM6IHsKICAgICAgZW1haWw6IGNsYWltcy5lbWFpbCwKICAgICAgdXNlcm5hbWU6IGNsYWltcy5uYW1lLAogICAgfSwKICAgIG1ldGFkYXRhX2FkbWluOiB7CiAgICAgIHJvbGVzOiByb2xlcywKICAgICAgdGVuYW50X2lkOiBjbGFpbXMudGVuYW50X2lkLAogICAgfQogIH0KfQ=="
               ttl: 10m
 
 
@@ -313,7 +297,7 @@ kratos:
       default_schema_id: default
       schemas:
         - id: default
-          url: "base64://ewogICAgICAgICAgIiRpZCI6ICJodHRwczovL3NjaGVtYXMub3J5LnNoL3ByZXNldHMva3JhdG9zL2lkZW50aXR5LmVtYWlsLnNjaGVtYS5qc29uIiwKICAgICAgICAgICIkc2NoZW1hIjogImh0dHA6Ly9qc29uLXNjaGVtYS5vcmcvZHJhZnQtMDcvc2NoZW1hIyIsCiAgICAgICAgICAidGl0bGUiOiAiUGVyc29uIiwKICAgICAgICAgICJ0eXBlIjogIm9iamVjdCIsCiAgICAgICAgICAicHJvcGVydGllcyI6IHsKICAgICAgICAgICAgInRyYWl0cyI6IHsKICAgICAgICAgICAgICAidHlwZSI6ICJvYmplY3QiLAogICAgICAgICAgICAgICJwcm9wZXJ0aWVzIjogewogICAgICAgICAgICAgICAgImVtYWlsIjogewogICAgICAgICAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAgICAgICAgICAgICAiZm9ybWF0IjogImVtYWlsIiwKICAgICAgICAgICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsCiAgICAgICAgICAgICAgICAgICJvcnkuc2gva3JhdG9zIjogewogICAgICAgICAgICAgICAgICAgICJjcmVkZW50aWFscyI6IHsKICAgICAgICAgICAgICAgICAgICAgICJwYXNzd29yZCI6IHsKICAgICAgICAgICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlCiAgICAgICAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgICAgICAgIndlYmF1dGhuIjogewogICAgICAgICAgICAgICAgICAgICAgICAiaWRlbnRpZmllciI6IHRydWUKICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgICAidG90cCI6IHsKICAgICAgICAgICAgICAgICAgICAgICAgImFjY291bnRfbmFtZSI6IHRydWUKICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgICAiY29kZSI6IHsKICAgICAgICAgICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlLAogICAgICAgICAgICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICAgICAgICJwYXNza2V5IjogewogICAgICAgICAgICAgICAgICAgICAgICAiZGlzcGxheV9uYW1lIjogdHJ1ZQogICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgInJlY292ZXJ5IjogewogICAgICAgICAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCIKICAgICAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgICAgICJ2ZXJpZmljYXRpb24iOiB7CiAgICAgICAgICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICAgIm1heExlbmd0aCI6IDMyMAogICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICJ0ZW5hbnRfaWQiOiB7CiAgICAgICAgICAgICAgICAgICJ0eXBlIjogInN0cmluZyIsCiAgICAgICAgICAgICAgICAgICJwYXR0ZXJuIjogIl5bMC05YS1mQS1GXXs4fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXs0fS1bMC05YS1mQS1GXXsxMn0kIiwKICAgICAgICAgICAgICAgICAgInRpdGxlIjogIlRlbmFudCBJRCIsCiAgICAgICAgICAgICAgICAgICJkZXNjcmlwdGlvbiI6ICJUaGUgcHJpbWFyeSB0ZW5hbnQgdGhpcyB1c2VyIGJlbG9uZ3MgdG8iCiAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgInJvbGVzIjogewogICAgICAgICAgICAgICAgICAidHlwZSI6ICJhcnJheSIsCiAgICAgICAgICAgICAgICAgICJpdGVtcyI6IHsKICAgICAgICAgICAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAgICAgICAgICAgICAgICJlbnVtIjogWwogICAgICAgICAgICAgICAgICAgICAgImFkbWluIiwKICAgICAgICAgICAgICAgICAgICAgICJ1c2VyIiwKICAgICAgICAgICAgICAgICAgICAgICJzdXBlcnVzZXIiCiAgICAgICAgICAgICAgICAgICAgXQogICAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgICAidGl0bGUiOiAiUm9sZXMiLAogICAgICAgICAgICAgICAgICAiZGVzY3JpcHRpb24iOiAiVGhlIHJvbGVzIGFzc2lnbmVkIHRvIHRoaXMgdXNlciIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJyZXF1aXJlZCI6IFsKICAgICAgICAgICAgICAgICJlbWFpbCIKICAgICAgICAgICAgICBdLAogICAgICAgICAgICAgICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IHRydWUKICAgICAgICAgICAgfQogICAgICAgICAgfQogICAgICAgIH0g"
+          url: "base64://ewogICAgICAgICAgIiRpZCI6ICJodHRwczovL3NjaGVtYXMub3J5LnNoL3ByZXNldHMva3JhdG9zL2lkZW50aXR5LmVtYWlsLnNjaGVtYS5qc29uIiwKICAgICAgICAgICIkc2NoZW1hIjogImh0dHA6Ly9qc29uLXNjaGVtYS5vcmcvZHJhZnQtMDcvc2NoZW1hIyIsCiAgICAgICAgICAidGl0bGUiOiAiUGVyc29uIiwKICAgICAgICAgICJ0eXBlIjogIm9iamVjdCIsCiAgICAgICAgICAicHJvcGVydGllcyI6IHsKICAgICAgICAgICAgInRyYWl0cyI6IHsKICAgICAgICAgICAgICAidHlwZSI6ICJvYmplY3QiLAogICAgICAgICAgICAgICJwcm9wZXJ0aWVzIjogewogICAgICAgICAgICAgICAgImVtYWlsIjogewogICAgICAgICAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLAogICAgICAgICAgICAgICAgICAiZm9ybWF0IjogImVtYWlsIiwKICAgICAgICAgICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsCiAgICAgICAgICAgICAgICAgICJvcnkuc2gva3JhdG9zIjogewogICAgICAgICAgICAgICAgICAgICJjcmVkZW50aWFscyI6IHsKICAgICAgICAgICAgICAgICAgICAgICJwYXNzd29yZCI6IHsKICAgICAgICAgICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlCiAgICAgICAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgICAgICAgIndlYmF1dGhuIjogewogICAgICAgICAgICAgICAgICAgICAgICAiaWRlbnRpZmllciI6IHRydWUKICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgICAidG90cCI6IHsKICAgICAgICAgICAgICAgICAgICAgICAgImFjY291bnRfbmFtZSI6IHRydWUKICAgICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgICAiY29kZSI6IHsKICAgICAgICAgICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlLAogICAgICAgICAgICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICAgICAgICJwYXNza2V5IjogewogICAgICAgICAgICAgICAgICAgICAgICAiZGlzcGxheV9uYW1lIjogdHJ1ZQogICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgICAgICAgInJlY292ZXJ5IjogewogICAgICAgICAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCIKICAgICAgICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICAgICAgICJ2ZXJpZmljYXRpb24iOiB7CiAgICAgICAgICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICAgIm1heExlbmd0aCI6IDMyMAogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgInJlcXVpcmVkIjogWwogICAgICAgICAgICAgICAgImVtYWlsIgogICAgICAgICAgICAgIF0sCiAgICAgICAgICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogdHJ1ZQogICAgICAgICAgICB9CiAgICAgICAgICB9CiAgICAgICAgfSA="
 
     oauth2_provider:
       url: http://hydra-admin.auth:4445

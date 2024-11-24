@@ -1,11 +1,26 @@
 local claims = std.extVar('claims');
 
+local roles =
+  if std.objectHas(claims, 'roles') then
+    claims.roles
+  else if endsWith(claims.email, "@threadr.ai") then
+    ["superuser","admin", "user"]
+  else
+    ["user"];
+
+local endsWith(str, suffix) =
+  std.length(str) >= std.length(suffix) &&
+  std.substr(str, std.length(str) - std.length(suffix), std.length(suffix)) == suffix;
+
 {
   identity: {
     traits: {
       email: claims.email,
       username: claims.name,
-      tenant_id:123
     },
-  },
+    metadata_admin: {
+      roles: roles,
+      tenant_id: claims.tenant_id,
+    }
+  }
 }

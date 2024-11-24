@@ -212,8 +212,9 @@ oathkeeper:
               "headers": {
                 "USER_ID": "{{ print .Subject }}",
                 "X-User-ID": "{{ print .Subject }}",
-                "X-Tenant-ID": "{{ print .Extra.tenant_id }}",
-                "X-User-Email": "{{ print .Extra.email }}"
+                "X-Tenant-ID": "{{ print .Extra.tenant_id}}",
+                "X-User-Email": "{{ print .Extra.email }}",
+                "X-User-Roles": "{{ print .Extra.roles }}"
               }
             }
           }
@@ -267,6 +268,7 @@ oathkeeper:
             X-User-ID: "{{ print .Subject }}"
             X-User-Email: "{{ print .Extra.email }}"
             X-Tenant-ID: "{{ print .Extra.tenant_id }}"
+            X-User-Role: "{{ print .Extra.roles }}"
 
     errors:
       handlers:

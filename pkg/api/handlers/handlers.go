@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/carverauto/eventrunner/pkg/api/middleware"
 	"github.com/carverauto/eventrunner/pkg/api/models"
+	customctx "github.com/carverauto/eventrunner/pkg/context"
 	"github.com/carverauto/eventrunner/pkg/errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -22,6 +22,95 @@ type Handlers struct {
 func NewHandlers(oryClient *ory.APIClient) *Handlers {
 	return &Handlers{OryClient: oryClient}
 }
+
+// getCustomContext is a helper function to extract the custom context
+func getCustomContext(c *gofr.Context) (customctx.Context, error) {
+	customCtxVal := c.Request.Context().Value("customCtx")
+	if customCtxVal == nil {
+		return nil, errors.NewAppError(500, "custom context not found")
+	}
+
+	customCtx, ok := customCtxVal.(customctx.Context)
+	if !ok {
+		return nil, errors.NewAppError(500, "invalid custom context type")
+	}
+
+	return customCtx, nil
+}
+
+type UserInfo struct {
+	UserID   uuid.UUID
+	Role     string
+	TenantID uuid.UUID
+	Email    string
+}
+
+func getUserInfo(c *gofr.Context) (*UserInfo, error) {
+	customCtx, err := getCustomContext(c)
+	if err != nil {
+		return nil, err
+	}
+
+	userIDStr, ok := customCtx.GetStringClaim("X-User-ID")
+	if !ok {
+		return nil, errors.NewMissingParamError("user ID")
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return nil, errors.NewInvalidParamError("user ID")
+	}
+
+	role, ok := customCtx.GetStringClaim("X-User-Role")
+	if !ok {
+		return nil, errors.NewMissingParamError("user role")
+	}
+
+	tenantIDStr, ok := customCtx.GetStringClaim("X-Tenant-ID")
+	if !ok {
+		return nil, errors.NewMissingParamError("tenant ID")
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
+	if err != nil {
+		return nil, errors.NewInvalidParamError("tenant ID")
+	}
+
+	email, _ := customCtx.GetStringClaim("X-User-Email") // Optional
+
+	return &UserInfo{
+		UserID:   userID,
+		Role:     role,
+		TenantID: tenantID,
+		Email:    email,
+	}, nil
+}
+
+/*
+func UpdateRoles(c *gofr.Context) (interface{}, error) {
+	var req struct {
+		UserID string   `json:"user_id"`
+		Roles  []string `json:"roles"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		return nil, err
+	}
+
+	// Get the admin user's email from the session
+	adminEmail := c.Get("user_email")
+
+	// Check if admin is from threadr.ai domain
+	if !strings.HasSuffix(adminEmail, "@threadr.ai") {
+		return nil, errors.New("unauthorized")
+	}
+
+	// Update roles using Kratos Admin API
+	// Implementation depends on your Kratos client setup
+	return kratosClient.UpdateIdentity(req.UserID, req.Roles)
+}
+
+*/
 
 /*
 	TODO: Finish this function
@@ -138,13 +227,12 @@ func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewInvalidParamError("tenant data")
 	}
 
-	claims, err := middleware.GetJWTClaims(c)
+	userInfo, err := getUserInfo(c)
 	if err != nil {
 		return nil, err
 	}
 
-	roles, ok := claims["roles"].([]interface{})
-	if !ok || !containsRole(roles, "superuser") {
+	if userInfo.Role != "superuser" {
 		return nil, errors.NewForbiddenError("Only superuser can create tenants")
 	}
 
@@ -157,10 +245,8 @@ func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewDatabaseError(err, "Failed to insert tenant into database")
 	}
 
-	// Update the superuser's tenants
-	userID, _ := uuid.Parse(claims["sub"].(string))
 	err = c.Mongo.UpdateOne(c, "users",
-		bson.M{"user_id": userID},
+		bson.M{"user_id": userInfo.UserID},
 		bson.M{"$addToSet": bson.M{"tenant_ids": tenant.TenantID}})
 	if err != nil {
 		return nil, errors.NewDatabaseError(err, "Failed to update user's tenants")
@@ -184,34 +270,53 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 		return nil, errors.NewInvalidParamError("user data")
 	}
 
-	claims, err := middleware.GetJWTClaims(c)
+	// Get custom context
+	customCtx, err := getCustomContext(c)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if the requester has the right to create users
-	requesterRoles, ok := claims["roles"].([]interface{})
+	// Get requester's role
+	requesterRole, ok := customCtx.GetStringClaim("X-User-Role")
 	if !ok {
-		return nil, errors.NewForbiddenError("Invalid role data")
+		return nil, errors.NewMissingParamError("X-User-Role header")
 	}
 
-	isSuperuser := containsRole(requesterRoles, "superuser")
-	isTenantAdmin := containsRole(requesterRoles, "tenant_admin")
+	// Check if the requester has the right to create users
+	isSuperuser := requesterRole == "superuser"
+	isTenantAdmin := requesterRole == "tenant_admin"
 
 	if !isSuperuser && !isTenantAdmin {
 		return nil, errors.NewForbiddenError("Insufficient permissions to create user")
 	}
 
-	// Get the tenant ID from the request
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+	// Get the tenant ID from the request parameters
+	tenantIDStr := c.Param("tenant_id")
+	if tenantIDStr == "" {
+		return nil, errors.NewMissingParamError("tenant_id")
+	}
+
+	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
 		return nil, errors.NewInvalidParamError("tenant_id")
 	}
 
 	// Verify that the requester has access to this tenant
-	requesterTenantIDs, ok := claims["tenant_ids"].([]interface{})
-	if !ok || !containsTenantID(requesterTenantIDs, tenantID) {
-		return nil, errors.NewForbiddenError("You don't have access to this tenant")
+	requesterTenantID, ok := customCtx.GetStringClaim("X-Tenant-ID")
+	if !ok {
+		return nil, errors.NewMissingParamError("X-Tenant-ID header")
+	}
+
+	// If not superuser, verify tenant access
+	if !isSuperuser {
+		requesterTenantUUID, err := uuid.Parse(requesterTenantID)
+		if err != nil {
+			return nil, errors.NewInvalidParamError("requester tenant ID")
+		}
+
+		if requesterTenantUUID != tenantID {
+			return nil, errors.NewForbiddenError("You don't have access to this tenant")
+		}
 	}
 
 	// Create identity in Ory
@@ -220,7 +325,7 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 		Traits: map[string]interface{}{
 			"email":     user.Email,
 			"roles":     user.Roles,
-			"tenant_id": tenantID.String(), // We still need to include a primary tenant_id for Ory
+			"tenant_id": tenantID.String(),
 		},
 	}
 
@@ -236,12 +341,65 @@ func (h *Handlers) CreateUser(c *gofr.Context) (interface{}, error) {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
+	// If there's a customer ID in the request, validate and assign it
+	if customerIDStr, ok := customCtx.GetStringClaim("X-Customer-ID"); ok {
+		customerID, err := uuid.Parse(customerIDStr)
+		if err != nil {
+			return nil, errors.NewInvalidParamError("customer ID")
+		}
+		user.CustomerID = customerID
+	}
+
 	_, err = c.Mongo.InsertOne(c, "users", user)
 	if err != nil {
 		return nil, errors.NewDatabaseError(err, "Failed to insert user into database")
 	}
 
+	// Get the creator's email
+	creatorEmail, ok := customCtx.GetStringClaim("X-User-Email")
+	if !ok {
+		creatorEmail = "unknown" // fallback value if email is not available
+	}
+
+	// Create the audit log
+	auditLog := models.AuditLog{
+		ID:          uuid.New(),
+		TenantID:    tenantID,
+		UserID:      user.UserID,
+		Action:      "create_user",
+		Description: fmt.Sprintf("User %s created by %s", user.Email, creatorEmail),
+		CreatedAt:   time.Now(),
+	}
+
+	_, err = c.Mongo.InsertOne(c, "audit_logs", auditLog)
+	if err != nil {
+		c.Logger.Errorf("Failed to create audit log: %v", err)
+		// Don't return the error as this is not critical
+	}
+
 	return user, nil
+}
+
+type AuditAction string
+
+const (
+	AuditActionCreateUser AuditAction = "create_user"
+	AuditActionUpdateUser AuditAction = "update_user"
+	AuditActionDeleteUser AuditAction = "delete_user"
+)
+
+func createAuditLog(c *gofr.Context, action AuditAction, tenantID uuid.UUID, userID uuid.UUID, description string) error {
+	auditLog := models.AuditLog{
+		ID:          uuid.New(),
+		TenantID:    tenantID,
+		UserID:      userID,
+		Action:      string(action),
+		Description: description,
+		CreatedAt:   time.Now(),
+	}
+
+	_, err := c.Mongo.InsertOne(c, "audit_logs", auditLog)
+	return err
 }
 
 func containsTenantID(tenantIDs []interface{}, tenantID uuid.UUID) bool {

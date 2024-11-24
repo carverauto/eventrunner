@@ -29,13 +29,13 @@ func main() {
 			MaxBytes: 1024 * 1024 * 1024, // 1 GB, adjust as needed
 		},
 		MaxWait:     5 * time.Second,
-		BatchSize:   100,
 		MaxPullWait: 10,
 		Consumer:    os.Getenv("NATS_CONSUMER"),
 		CredsFile:   os.Getenv("NATS_CREDS_FILE"),
 	}, app.Logger())
 	natsClient.UseLogger(app.Logger)
 	natsClient.UseMetrics(app.Metrics())
+
 	if err := app.AddPubSub(ctx, natsClient); err != nil {
 		app.Logger().Errorf("Failed to connect to NATS: %v", err)
 		return
@@ -45,7 +45,7 @@ func main() {
 	appWrapper := eventrunner.NewAppWrapper(app)
 
 	// Initialize the EventRouter with the existing NATS client
-	router := eventrunner.NewEventRouter(appWrapper, natsClient, nil)
+	router := eventrunner.NewEventRouter(ctx, appWrapper, natsClient, nil)
 
 	// Start the router in a goroutine
 	go func() {
