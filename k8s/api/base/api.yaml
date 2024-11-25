@@ -1,34 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: eventrunner-api
+  name: api
   namespace: eventrunner
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: eventrunner-api
+      app: api
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/logLevel: debug
-        proxy.istio.io/config: |
-          tracing:
-            sampling: 100.0
-            customTags:
-              request.host:
-                header:
-                  name: :authority
       labels:
-        app: eventrunner-api
-        sidecar.istio.io/inject: "false"
+        app: api
     spec:
       serviceAccountName: eventrunner-account
       imagePullSecrets:
         - name: ghcr-io-cred
       containers:
-        - name: eventrunner-api
-          image: ghcr.io/carverauto/eventrunner-api:v0.0.28
+        - name: api
+          image: ghcr.io/carverauto/eventrunner-api:v0.0.29
           imagePullPolicy: Always
           env:
             - name: DB_PASSWORD
@@ -38,7 +28,7 @@ spec:
                   key: DB_PASSWORD
           envFrom:
             - configMapRef:
-                name: eventrunner-config
+                name: api-config
           volumeMounts:
             - name: config
               mountPath: /app/configs
@@ -48,7 +38,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: eventrunner-config
+            name: api-config
         - name: nats-creds
           secret:
             secretName: nats-creds

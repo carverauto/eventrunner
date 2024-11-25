@@ -1,11 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: eventrunner-api
+  name: api
   namespace: eventrunner
   labels:
-    app: eventrunner-api
-    sidecar.istio.io/inject: "true"
+    app: api
 spec:
   ports:
     - port: 80
@@ -13,4 +12,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: eventrunner-api
+    app: api
