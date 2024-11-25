@@ -1,6 +1,0 @@
-defaultBaseImage: ghcr.io/carverauto/eventrunner-base:v2
-builds:
-  - id: api-admin
-    main: .
-    platforms:
-      - linux/amd64

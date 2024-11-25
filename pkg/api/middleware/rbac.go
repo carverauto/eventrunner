@@ -107,9 +107,9 @@ func RequireUser(next Handler) Handler {
 			return nil, err
 		}
 
-		userID, ok := customCtx.GetStringClaim("X-User-ID")
+		userID, ok := customCtx.GetStringClaim("X-User-Id")
 		if !ok || userID == "" {
-			return nil, errors.NewMissingParamError("X-User-ID header")
+			return nil, errors.NewMissingParamError("X-User-Id header")
 		}
 
 		return next.Handle(c)
@@ -126,10 +126,10 @@ func GetAuthClaims(c *gofr.Context) (map[string]string, error) {
 	claims := make(map[string]string)
 
 	// Extract common auth claims
-	if userID, ok := customCtx.GetStringClaim("X-User-ID"); ok {
+	if userID, ok := customCtx.GetStringClaim("X-User-Id"); ok {
 		claims["user_id"] = userID
 	}
-	if tenantID, ok := customCtx.GetStringClaim("X-Tenant-ID"); ok {
+	if tenantID, ok := customCtx.GetStringClaim("X-Tenant-Id"); ok {
 		claims["tenant_id"] = tenantID
 	}
 	if userRole, ok := customCtx.GetStringClaim("X-User-Role"); ok {

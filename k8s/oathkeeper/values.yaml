@@ -167,7 +167,7 @@ oathkeeper:
       {
         "id": "eventrunner-rule",
         "upstream": {
-          "url": "http://eventrunner-api.eventrunner"
+          "url": "http://api.eventrunner"
         },
         "match": {
           "url": "https://api.tunnel.threadr.ai/api/<.*>",
@@ -210,7 +210,6 @@ oathkeeper:
             "handler": "header",
             "config": {
               "headers": {
-                "USER_ID": "{{ print .Subject }}",
                 "X-User-ID": "{{ print .Subject }}",
                 "X-Tenant-ID": "{{ print .Extra.tenant_id}}",
                 "X-User-Email": "{{ print .Extra.email }}",

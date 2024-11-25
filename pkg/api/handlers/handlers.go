@@ -51,7 +51,7 @@ func getUserInfo(c *gofr.Context) (*UserInfo, error) {
 		return nil, err
 	}
 
-	userIDStr, ok := customCtx.GetStringClaim("X-User-ID")
+	userIDStr, ok := customCtx.GetStringClaim("X-User-Id")
 	if !ok {
 		return nil, errors.NewMissingParamError("user ID")
 	}
@@ -66,7 +66,7 @@ func getUserInfo(c *gofr.Context) (*UserInfo, error) {
 		return nil, errors.NewMissingParamError("user role")
 	}
 
-	tenantIDStr, ok := customCtx.GetStringClaim("X-Tenant-ID")
+	tenantIDStr, ok := customCtx.GetStringClaim("X-Tenant-Id")
 	if !ok {
 		return nil, errors.NewMissingParamError("tenant ID")
 	}
