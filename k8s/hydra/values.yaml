@@ -41,8 +41,10 @@ hydra:
     oauth2:
       expose_internal_errors: true
       allowed_top_level_claims:
-        - email
+        - user_metadata
+        - user_id
         - tenant_id
+        - email
         - roles
       mirror_top_level_claims: true
     oidc:

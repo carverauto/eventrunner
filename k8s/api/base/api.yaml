@@ -18,7 +18,7 @@ spec:
         - name: ghcr-io-cred
       containers:
         - name: api
-          image: ghcr.io/carverauto/eventrunner-api:v0.0.37
+          image: ghcr.io/carverauto/eventrunner-api:v0.0.39
           imagePullPolicy: Always
           env:
             - name: DB_PASSWORD

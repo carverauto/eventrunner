@@ -40,7 +40,7 @@ func getCustomContext(c *gofr.Context) (customctx.Context, error) {
 
 type UserInfo struct {
 	UserID   uuid.UUID
-	Role     string
+	Roles    []string
 	TenantID uuid.UUID
 	Email    string
 }
@@ -80,7 +80,7 @@ func getUserInfo(c *gofr.Context) (*UserInfo, error) {
 
 	return &UserInfo{
 		UserID:   userID,
-		Role:     role,
+		Roles:    []string{role},
 		TenantID: tenantID,
 		Email:    email,
 	}, nil
@@ -232,7 +232,9 @@ func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	if userInfo.Role != "superuser" {
+	// look through userInfo.Roles to see if they are the superUser
+	isSuperUser := containsRole(userInfo.Roles, "superuser")
+	if !isSuperUser {
 		return nil, errors.NewForbiddenError("Only superuser can create tenants")
 	}
 
@@ -255,9 +257,10 @@ func (h *Handlers) CreateTenant(c *gofr.Context) (interface{}, error) {
 	return tenant, nil
 }
 
-func containsRole(roles []interface{}, role string) bool {
+// containsRole checks if a role is present in a list of roles from the UserInfo struct.
+func containsRole(roles []string, role string) bool {
 	for _, r := range roles {
-		if r.(string) == role {
+		if r == role {
 			return true
 		}
 	}
