@@ -9,7 +9,9 @@ EventRunner uses Ory's identity stack for authentication:
 - Hydra: OAuth2 provider
 - Oathkeeper: API gateway and access control
 
-## Flow Diagram
+## Flow Diagrams
+
+### Overview
 
 ```mermaid
 sequenceDiagram
@@ -45,6 +47,25 @@ sequenceDiagram
     Oathkeeper->>Hydra: Verify token
     Hydra-->>Oathkeeper: Token valid + claims
     Oathkeeper->>API: Request + X-headers
+```
+### User Registration Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Hydra
+    participant Kratos
+    
+    Client->>Hydra: POST /oauth2/register
+    Note over Client,Hydra: Sends metadata, redirect URIs, etc.
+    Hydra->>Hydra: Validates request
+    Hydra-->>Client: Returns client_id, client_secret
+    Note over Client,Hydra: Also returns registration_access_token
+    
+    Note over Client,Hydra: Later...
+    Client->>Hydra: GET /oauth2/register/{client_id}
+    Note over Client,Hydra: Uses registration_access_token
+    Hydra-->>Client: Returns client config
 ```
 
 ## Step-by-Step Guide

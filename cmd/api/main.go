@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/carverauto/eventrunner/pkg/api/handlers"
@@ -38,8 +37,8 @@ func main() {
 
 	// Initialize Ory client
 	oryClient := ory.NewConfiguration()
-	oryClient.Servers = ory.ServerConfigurations{{URL: os.Getenv("ORY_SDK_URL")}}
-	// oryClient.DefaultHeader["Authorization"] = "Bearer " + os.Getenv("ORY_PAT")
+
+	oryClient.Servers = ory.ServerConfigurations{{URL: "http://hydra-admin.auth:4445"}}
 
 	apiClient := ory.NewAPIClient(oryClient)
 
@@ -60,6 +59,17 @@ func main() {
 
 	// Add other middleware and routes
 	app.UseMiddleware(middleware.CustomHeadersMiddleware())
+
+	// API Credentials routes
+	app.POST("/api/admin/credentials", middleware.Adapt(
+		h.CreateAPICredential,
+		middleware.RequireUser,
+	))
+
+	app.GET("/api/admin/credentials", middleware.Adapt(
+		h.ListAPICredentials,
+		middleware.RequireUser,
+	))
 
 	// this endpoint is used by the Ory Kratos login flow
 	app.GET("/callback", func(ctx *gofr.Context) (interface{}, error) {

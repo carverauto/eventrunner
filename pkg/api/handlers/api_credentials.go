@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -23,20 +24,26 @@ func (h *Handlers) CreateAPICredential(c *gofr.Context) (interface{}, error) {
 		reqBody.Name = "API Key " + time.Now().Format(time.RFC3339)
 	}
 
+	log.Println("Request body: ", reqBody)
+	log.Println("Request body Name: ", reqBody.Name)
+
 	oauth2Client := client.NewOAuth2Client()
+
 	oauth2Client.SetClientName(reqBody.Name)
 	oauth2Client.SetScope("openid profile email tenant_id")
 	oauth2Client.SetGrantTypes([]string{"authorization_code", "refresh_token", "client_credentials"})
 	oauth2Client.SetResponseTypes([]string{"code", "id_token"})
-	oauth2Client.SetRedirectUris([]string{"https://api-admin.tunnel.threadr.ai/callback"})
-	oauth2Client.SetAudience([]string{"https://api-admin.tunnel.threadr.ai"})
+	oauth2Client.SetRedirectUris([]string{"https://api.tunnel.threadr.ai/callback"})
 
 	metadata := map[string]interface{}{
-		"user_id":    userInfo.UserID.String(),
-		"tenant_id":  userInfo.TenantID.String(),
-		"created_at": time.Now(),
-		"name":       reqBody.Name,
+		"user_id":   userInfo.UserID.String(),
+		"tenant_id": userInfo.TenantID.String(),
+		"email":     userInfo.Email,
+		"roles":     userInfo.Roles,
 	}
+
+	log.Println("Metadata: ", metadata)
+
 	oauth2Client.SetMetadata(metadata)
 
 	resp, httpResp, err := h.OryClient.OAuth2API.CreateOAuth2Client(c.Context).
