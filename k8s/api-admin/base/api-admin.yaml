@@ -18,9 +18,11 @@ spec:
         - name: ghcr-io-cred
       containers:
         - name: api-admin
-          image: ghcr.io/carverauto/api-admin:v0.0.04
+          image: ghcr.io/carverauto/api-admin:v0.0.05
           imagePullPolicy: Always
           env:
+            - name: DSN
+              value: "mongodb://er-mongodb.mongo.svc.cluster.local:27017"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -24,7 +24,7 @@ func main() {
 	ctx := context.Background()
 
 	// Set up MongoDB
-	db := mongo.New(&mongo.Config{URI: os.Getenv("DB_URL"), Database: "eventrunner"})
+	db := mongo.New(&mongo.Config{URI: os.Getenv("DSN"), Database: "eventrunner"})
 
 	// setup a context with a timeout
 	dbCtx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
