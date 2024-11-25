@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: eventrunner-config
+  name: api-admin-config
   namespace: eventrunner
 data:
   .env: |
-    APP_NAME=eventrunner
+    APP_NAME=api-admin
     HTTP_PORT=8200
     LOG_LEVEL=DEBUG
-    ORY_PROJECT_URL=http://localhost:4455
+    ORY_PROJECT_URL=http://hydra-admin.auth:4445
     DB_HOST=localhost
     DB_USER=root
     DB_PASSWORD=password
@@ -18,9 +18,9 @@ data:
     DB_URL=mongodb://er-mongodb.svc.cluster.local:27017
   .staging.env: |
     LOG_LEVEL=DEBUG
-    APP_NAME=eventrunner
+    APP_NAME=api-admin
     HTTP_PORT=8200
-    ORY_PROJECT_URL=http://localhost:4455
+    ORY_PROJECT_URL=http://hydra-admin.auth:4445
     DB_HOST=localhost
     DB_USER=root
     DB_PASSWORD=password

@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: eventrunner
+resources:
+  - service.yaml
+  - api.yaml
+  - configmap.yaml
+  - health-alive-ingress.yaml
+  - service-proxy.yaml
+  - ingress-api.yaml
+  - ingress-callback.yaml

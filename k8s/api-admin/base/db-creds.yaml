@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eventrunner-db-credentials
+  namespace: eventrunner
+type: Opaque
+stringData:
+  username: eventrunner
+  password: changeme

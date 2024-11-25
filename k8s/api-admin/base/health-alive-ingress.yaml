@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: eventrunner-api-health
+  name: api-admin-health
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
@@ -13,25 +13,25 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: api.tunnel.threadr.ai
+    - host: api-admin.tunnel.threadr.ai
       http:
         paths:
           - path: /.well-known/health
-            pathType: ImplementationSpecific    # Changed from Exact
+            pathType: ImplementationSpecific
             backend:
               service:
-                name: eventrunner-api
+                name: api-admin
                 port:
                   number: 8200
   tls:
     - hosts:
-        - api.tunnel.threadr.ai
+        - api-admin.tunnel.threadr.ai
       secretName: eventrunner-api-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: eventrunner-api-alive
+  name: api-admin-alive
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
@@ -41,17 +41,17 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: api.tunnel.threadr.ai
+    - host: api-admin.tunnel.threadr.ai
       http:
         paths:
           - path: /.well-known/alive
-            pathType: ImplementationSpecific    # Changed from Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
-                name: eventrunner-api
+                name: api-admin
                 port:
                   number: 8200
   tls:
     - hosts:
-        - api.tunnel.threadr.ai
+        - api-admin.tunnel.threadr.ai
       secretName: eventrunner-api-tls

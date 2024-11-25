@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+  namespace: eventrunner
+  annotations:
+    cert-manager.io/cluster-issuer: threadr-issuer
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.tunnel.threadr.ai
+      secretName: eventrunner-api-tls
+  rules:
+    - host: api.tunnel.threadr.ai
+      http:
+        paths:
+          - path: /callback(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8200
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: oathkeeper-proxy
+                port:
+                  number: 4455

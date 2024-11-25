@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-health
+  namespace: eventrunner
+  annotations:
+    cert-manager.io/cluster-issuer: threadr-issuer
+    nginx.ingress.kubernetes.io/auth-response-headers: X-User,X-Tenant-ID,X-Request-Id,Authorization
+    nginx.ingress.kubernetes.io/auth-snippet: |
+      proxy_set_header X-Original-Uri $request_uri;
+    nginx.ingress.kubernetes.io/auth-url: http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions/health
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.tunnel.threadr.ai
+      http:
+        paths:
+          - path: /.well-known/health
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8200
+  tls:
+    - hosts:
+        - api.tunnel.threadr.ai
+      secretName: eventrunner-api-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-alive
+  namespace: eventrunner
+  annotations:
+    cert-manager.io/cluster-issuer: threadr-issuer
+    nginx.ingress.kubernetes.io/auth-response-headers: X-User,X-Tenant-ID,X-Request-Id,Authorization
+    nginx.ingress.kubernetes.io/auth-url: http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions/alive
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.tunnel.threadr.ai
+      http:
+        paths:
+          - path: /.well-known/alive
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api
+                port:
+                  number: 8200
+  tls:
+    - hosts:
+        - api.tunnel.threadr.ai
+      secretName: eventrunner-api-tls

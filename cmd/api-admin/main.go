@@ -1,4 +1,4 @@
-// File: main.go
+// Package main cmd/api-admin/main.go
 
 package main
 
@@ -24,7 +24,7 @@ func main() {
 	ctx := context.Background()
 
 	// Set up MongoDB
-	db := mongo.New(&mongo.Config{URI: "mongodb://er-mongodb.mongo.svc.cluster.local:27017", Database: "eventrunner"})
+	db := mongo.New(&mongo.Config{URI: os.Getenv("DB_URL"), Database: "eventrunner"})
 
 	// setup a context with a timeout
 	dbCtx, cancel := context.WithTimeout(ctx, dbConnectTimeout)
@@ -39,7 +39,6 @@ func main() {
 	// Initialize Ory client
 	oryClient := ory.NewConfiguration()
 	oryClient.Servers = ory.ServerConfigurations{{URL: os.Getenv("ORY_SDK_URL")}}
-	// oryClient.DefaultHeader["Authorization"] = "Bearer " + os.Getenv("ORY_PAT")
 
 	apiClient := ory.NewAPIClient(oryClient)
 
@@ -52,6 +51,17 @@ func main() {
 
 	// Add other middleware and routes
 	app.UseMiddleware(middleware.CustomHeadersMiddleware())
+
+	// API Credentials routes
+	app.POST("/api/credentials", middleware.Adapt(
+		h.CreateAPICredential,
+		middleware.RequireUser,
+	))
+
+	app.GET("/api/credentials", middleware.Adapt(
+		h.ListAPICredentials,
+		middleware.RequireUser,
+	))
 
 	// this endpoint is used by the Ory Kratos login flow
 	app.GET("/callback", func(ctx *gofr.Context) (interface{}, error) {

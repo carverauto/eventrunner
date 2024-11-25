@@ -1,0 +1,9 @@
+# Service that points to the auth namespace service
+apiVersion: v1
+kind: Service
+metadata:
+  name: oathkeeper-proxy
+  namespace: eventrunner
+spec:
+  type: ExternalName
+  externalName: oathkeeper-proxy.auth.svc.cluster.local
