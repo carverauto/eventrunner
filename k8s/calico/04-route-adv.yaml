@@ -8,4 +8,5 @@ spec:
   serviceClusterIPs:
     - cidr: 10.43.0.0/16
   serviceLoadBalancerIPs:
+    - cidr: "10.43.0.0/16"
     - cidr: "2001:470:c0b5:5::/64"
