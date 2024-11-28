@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mailserver
+  namespace: default
+spec:
+  serviceName: mailserver
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailserver
+  template:
+    metadata:
+      labels:
+        app: mailserver
+    spec:
+      containers:
+        - name: mailserver
+          image: ghcr.io/docker-mailserver/docker-mailserver:latest
+          ports:
+            - containerPort: 25   # SMTP
+              name: smtp
+            - containerPort: 465  # SMTPS
+              name: smtps
+            - containerPort: 587  # Submission
+              name: submission
+            - containerPort: 993  # IMAPS
+              name: imaps
+          volumeMounts:
+            - name: maildata
+              mountPath: /var/mail
+            - name: config
+              mountPath: /tmp/docker-mailserver
+            - name: certs
+              mountPath: /etc/letsencrypt/live/mail.tunnel.threadr.ai
+              readOnly: true
+          envFrom:
+            - configMapRef:
+                name: mailserver-config
+      volumes:
+        - name: config
+          emptyDir: {}
+        - name: maildata
+          persistentVolumeClaim:
+            claimName: maildata
+        - name: certs
+          secret:
+            secretName: mail-tls-secret
+---
