@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: external-dns
+  namespace: default
 spec:
   strategy:
     type: Recreate
@@ -20,12 +21,25 @@ spec:
           args:
             - --source=service
             - --source=ingress
-            - --domain-filter=
+            - --domain-filter=threadr.ai
             - --provider=cloudflare
             - --cloudflare-dns-records-per-page=5000 # (optional) configure how many DNS records to fetch per request
-            - --log-level=trace
+            - --log-level=debug
             - --registry=txt
-            - --txt-owner-id=default
+            - --txt-owner-id=external-dns-1
+            - --managed-record-types=A
+            - --managed-record-types=AAAA
+            - --policy=sync
+            - --request-timeout=30s
+            - --min-event-sync-interval=5s
+            - --events
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
           env:
             - name: CF_API_KEY
               valueFrom:
@@ -37,3 +51,22 @@ spec:
                 secretKeyRef:
                   name: cloudflare-api-secret
                   key: CF_API_EMAIL
+            - name: KUBERNETES_NODE_SELECTOR
+              value: "kubernetes.io/os=linux"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 7979
+            initialDelaySeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 7979
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane

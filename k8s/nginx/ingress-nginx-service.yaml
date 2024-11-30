@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: ingress-nginx
+    meta.helm.sh/release-namespace: ingress-nginx
+    metallb.universe.tf/address-pool: k3s-pool
+    metallb.universe.tf/allow-shared-ip: "true"
+    metallb.universe.tf/ip-allocated-from-pool: k3s-pool
+  creationTimestamp: "2024-10-25T14:55:00Z"
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+    app.kubernetes.io/version: 1.11.3
+    helm.sh/chart: ingress-nginx-4.11.3
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  resourceVersion: "1286612"
+  uid: f3e95c15-181c-4178-b670-c506683cc221
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 2001:470:c0b5:5::a256
+  clusterIPs:
+  - 2001:470:c0b5:5::a256
+  - 10.43.182.162
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv6
+  - IPv4
+  ipFamilyPolicy: PreferDualStack
+  ports:
+  - appProtocol: http
+    name: http
+    nodePort: 31518
+    port: 80
+    protocol: TCP
+    targetPort: http
+  - appProtocol: https
+    name: https
+    nodePort: 30699
+    port: 443
+    protocol: TCP
+    targetPort: https
+  - name: smtp
+    port: 25
+    protocol: TCP
+    targetPort: 25
+  - name: smtps
+    port: 465
+    protocol: TCP
+    targetPort: 465
+  - name: submission
+    port: 587
+    protocol: TCP
+    targetPort: 587
+  - name: imaps
+    port: 993
+    protocol: TCP
+    targetPort: 993
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  sessionAffinity: None
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - ip: 10.43.0.3
+      ipMode: VIP
+    - ip: 2001:470:c0b5:5::1
+      ipMode: VIP

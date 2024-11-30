@@ -29,7 +29,9 @@ spec:
           volumeMounts:
             - name: maildata
               mountPath: /var/mail
-            - name: config
+            - name: mailstate
+              mountPath: /var/mail-state
+            - name: mailconfig
               mountPath: /tmp/docker-mailserver
             - name: certs
               mountPath: /etc/letsencrypt/live/mail.tunnel.threadr.ai
@@ -38,12 +40,31 @@ spec:
             - configMapRef:
                 name: mailserver-config
       volumes:
-        - name: config
-          emptyDir: {}
-        - name: maildata
-          persistentVolumeClaim:
-            claimName: maildata
         - name: certs
           secret:
             secretName: mail-tls-secret
----
+  volumeClaimTemplates:
+    - metadata:
+        name: maildata
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 10Gi
+    - metadata:
+        name: mailstate
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
+    - metadata:
+        name: mailconfig
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 1Gi
