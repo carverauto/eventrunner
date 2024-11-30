@@ -1,0 +1,9 @@
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: ipv6-pool
+spec:
+  cidr: 2001:470:c0b5:4::/64
+  natOutgoing: true
+  ipipMode: Never
+  vxlanMode: Never

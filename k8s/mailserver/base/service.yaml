@@ -4,18 +4,10 @@ metadata:
   name: mailserver
   namespace: default
   annotations:
-    metallb.universe.tf/address-pool: k3s-pool
-    metallb.universe.tf/allow-shared-ip: "true"
     external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.threadr.ai"
-    # Add MX record
-    external-dns.alpha.kubernetes.io/mx-preference: "10"
-    external-dns.alpha.kubernetes.io/mx-record: "mail.tunnel.threadr.ai"
-    # Add TXT records for SPF and DMARC
-    external-dns.alpha.kubernetes.io/txt-owner-id: "mail-tunnel-threadr"
-    external-dns.alpha.kubernetes.io/txt-records: |
-      heritage=external-dns,txt-record="v=spf1 mx a -all"
-      heritage=external-dns,name=_dmarc,txt-record="v=DMARC1; p=reject; rua=mailto:postmaster@tunnel.threadr.ai"
+    metallb.universe.tf/address-pool: k3s-pool
 spec:
+  externalTrafficPolicy: Local
   type: LoadBalancer
   ipFamilyPolicy: PreferDualStack
   ipFamilies:

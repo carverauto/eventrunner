@@ -8,20 +8,15 @@ metadata:
     metallb.universe.tf/allow-shared-ip: "true"
 spec:
   type: LoadBalancer
-  ipFamilyPolicy: PreferDualStack
+  ipFamilyPolicy: RequireDualStack
   ipFamilies:
     - IPv6
     - IPv4
+  externalTrafficPolicy: Local
   ports:
     - name: http
       port: 80
       targetPort: 80
-      protocol: TCP
     - name: https
       port: 443
       targetPort: 443
-      protocol: TCP
-  selector:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/instance: ingress-nginx
-    app.kubernetes.io/component: controller

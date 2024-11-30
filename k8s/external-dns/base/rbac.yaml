@@ -3,6 +3,7 @@ kind: ClusterRole
 metadata:
   name: external-dns
 rules:
+  # Existing permissions
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get","watch","list"]
@@ -18,3 +19,10 @@ rules:
   - apiGroups: [""]
     resources: ["endpoints"]
     verbs: ["get","watch","list"]
+  # Add DNS CRD permissions
+  - apiGroups: ["dns.threadr.ai"]
+    resources: ["dnsendpoints"]
+    verbs: ["get","watch","list","create","update","patch","delete"]
+  - apiGroups: ["dns.threadr.ai"]
+    resources: ["dnsendpoints/status"]
+    verbs: ["get","update","patch"]
