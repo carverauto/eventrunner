@@ -3,6 +3,15 @@ kind: StatefulSet
 metadata:
   name: mailserver
   namespace: default
+
+  annotations:
+    ignore-check.kube-linter.io/run-as-non-root: >-
+      'mailserver' needs to run as root
+    ignore-check.kube-linter.io/privileged-ports: >-
+      'mailserver' needs privileged ports
+    ignore-check.kube-linter.io/no-read-only-root-fs: >-
+      There are too many files written to make the root FS read-only
+
 spec:
   serviceName: mailserver
   replicas: 1
@@ -17,15 +26,54 @@ spec:
       containers:
         - name: mailserver
           image: ghcr.io/docker-mailserver/docker-mailserver:latest
+          securityContext:
+            # `allowPrivilegeEscalation: true` is required to support SGID via the `postdrop`
+            # executable in `/var/mail-state` for Postfix (maildrop + public dirs):
+            # https://github.com/docker-mailserver/docker-mailserver/pull/3625
+            allowPrivilegeEscalation: true
+            readOnlyRootFilesystem: false
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            privileged: false
+            capabilities:
+              add:
+                # file permission capabilities
+                - CHOWN
+                - FOWNER
+                - MKNOD
+                - SETGID
+                - SETUID
+                - DAC_OVERRIDE
+                # network capabilities
+                - NET_ADMIN  # needed for F2B
+                - NET_RAW    # needed for F2B
+                - NET_BIND_SERVICE
+                # miscellaneous  capabilities
+                - SYS_CHROOT
+                - KILL
+              drop: [ ALL ]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            limits:
+              memory: 4Gi
+              cpu: 1500m
+            requests:
+              memory: 2Gi
+              cpu: 600m
           ports:
-            - containerPort: 25   # SMTP
-              name: smtp
-            - containerPort: 465  # SMTPS
-              name: smtps
-            - containerPort: 587  # Submission
-              name: submission
-            - containerPort: 993  # IMAPS
-              name: imaps
+            - name: smtp
+              containerPort: 25
+              protocol: TCP
+            - name: submissions
+              containerPort: 465
+              protocol: TCP
+            - name: submission
+              containerPort: 587
+            - name: imaps
+              containerPort: 993
+              protocol: TCP
           volumeMounts:
             - name: maildata
               mountPath: /var/mail
@@ -33,16 +81,24 @@ spec:
               mountPath: /var/mail-state
             - name: mailconfig
               mountPath: /tmp/docker-mailserver
-            - name: certs
+            - name: certificates-rsa
               mountPath: /etc/letsencrypt/live/mail.tunnel.threadr.ai
               readOnly: true
           envFrom:
             - configMapRef:
-                name: mailserver-config
+                name: mailserver.environment
+
+      restartPolicy: Always
+
       volumes:
-        - name: certs
+        - name: certificates-rsa
           secret:
-            secretName: mail-tls-secret
+            secretName: mail-tls-certificate-rsa
+            items:
+              - key: tls.key
+                path: tls.key
+              - key: tls.crt
+                path: tls.crt
   volumeClaimTemplates:
     - metadata:
         name: maildata

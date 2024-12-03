@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: goflow2-config
+  namespace: netflow
+data:
+  goflow2.env: |
+    # Configuration for GoFlow2
+    TRANSPORT_FILE=/var/logs/goflow2.log
+    # TODO: implement NATS JetStream transport
+    TRANSPORT_KAFKA_BROKERS=localhost:9092
+    TRANSPORT_KAFKA_TOPIC=flows
+    FORMAT=bin
+  goflow2-mapping.yaml: |
+    ipfix:
+      mapping:
+        - field: 252
+          destination: in_if
+        - field: 253
+          destination: out_if

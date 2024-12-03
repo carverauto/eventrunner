@@ -1,0 +1,13 @@
+---
+# Add a second L2Advertisement for the second IP
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: coredns-ns2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - k3s-pool
+  ipAddressPoolSelectors:
+    - matchLabels:
+        dns-server: "ns2"

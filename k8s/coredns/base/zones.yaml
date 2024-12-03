@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-zones
+  namespace: dns
+data:
+  cert.tunnel.threadr.ai.db: |
+    $ORIGIN cert.tunnel.threadr.ai.
+    @	3600 IN	SOA ns1.tunnel.threadr.ai. admin.tunnel.threadr.ai. (
+            2023120101 ; serial
+            7200       ; refresh
+            3600       ; retry
+            1209600    ; expire
+            3600       ; minimum
+    )
+    
+    @	3600 IN NS	ns1.tunnel.threadr.ai.
+    @	3600 IN NS	ns2.tunnel.threadr.ai.
+    
+    @	300 IN AAAA	2001:470:c0b5:5::2
+    ns1	300 IN AAAA	2001:470:c0b5:5::3
+    ns2	300 IN AAAA	2001:470:c0b5:5::4

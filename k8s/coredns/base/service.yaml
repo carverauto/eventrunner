@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: coredns-custom
+  namespace: dns
+  annotations:
+    metallb.universe.tf/address-pool: k3s-pool
+    metallb.universe.tf/allow-shared-ip: "true"
+    # Add additional IP using L2Advertisement
+spec:
+  type: LoadBalancer
+  ipFamilyPolicy: PreferDualStack
+  ipFamilies:
+    - IPv6
+    - IPv4
+  ports:
+    - name: dns
+      port: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      protocol: TCP
+    - name: metrics
+      port: 9153
+      protocol: TCP
+  selector:
+    app: coredns-custom

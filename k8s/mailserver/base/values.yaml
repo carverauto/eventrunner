@@ -1,0 +1,109 @@
+# Image configuration
+image:
+  name: "ghcr.io/docker-mailserver/docker-mailserver"
+  tag: "latest"
+  pullPolicy: "IfNotPresent"
+
+# Certificate configuration
+certificate: "mail-tls-certificate-rsa"
+
+# Deployment configuration
+deployment:
+  replicas: 1
+  strategy:
+    type: "Recreate"
+
+  # Security context for extra capabilities
+  containerSecurityContext:
+    capabilities:
+      add:
+        - NET_ADMIN
+        - NET_BIND_SERVICE
+        - SYS_CHROOT
+        - CHOWN
+        - DAC_OVERRIDE
+        - FOWNER
+        - SETGID
+        - SETUID
+
+  env:
+    # General
+    OVERRIDE_HOSTNAME: "mail.tunnel.threadr.ai"
+    POSTMASTER_ADDRESS: "postmaster@tunnel.threadr.ai"
+    POSTSCREEN_ACTION: "ignore"
+    ONE_DIR: 1
+    ENABLE_CLAMAV: 0
+    ENABLE_SPAMASSASSIN: 1
+    SPAMASSASSIN_SPAM_TO_INBOX: 1
+    ENABLE_FAIL2BAN: 1
+
+    # SSL Configuration
+    SSL_TYPE: "manual"
+    SSL_CERT_PATH: "/etc/letsencrypt/live/mail.tunnel.threadr.ai/tls.crt"
+    SSL_KEY_PATH: "/etc/letsencrypt/live/mail.tunnel.threadr.ai/tls.key"
+
+    # Network settings
+    NETWORK_INTERFACE: "eth0"
+    POSTFIX_INET_PROTOCOLS: "all"
+    PERMIT_DOCKER: "none"
+    POSTFIX_MYNETWORKS: "10.0.0.0/8, 2001:470:c0b5:5::0/64, 2001:470:c0b5:4::0/64, 2001:470:c0b5:2::0/64"
+    POSTSCREEN_UPSTREAM_PROXY_PROTOCOL: "haproxy"
+    POSTFIX_SUBMISSION_SMTPD_UPSTREAM_PROXY_PROTOCOL: "haproxy"
+    POSTFIX_SUBMISSIONS_SMTPD_UPSTREAM_PROXY_PROTOCOL: "haproxy"
+    ENABLE_POSTFIX_VIRTUAL_TRANSPORT: 1
+    DOVECOT_INET_PROTOCOLS: "all"
+
+    # Debug
+    LOG_LEVEL: "trace"
+
+# Service configuration
+service:
+  type: "LoadBalancer"
+  loadBalancer:
+    #publicIp: "2001:470:c0b5:5::2"
+    allowedIPs:
+      - "0.0.0.0/0"
+
+  # Put all other service configs under annotations since they're not natively supported
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.threadr.ai"
+    metallb.universe.tf/address-pool: "k3s-pool"
+    kubernetes.io/ip-family-policy: "PreferDualStack"
+    service.kubernetes.io/external-traffic-policy: "Local"
+
+  # Define ports through the chart's proxy protocol settings instead
+  proxyProtocol:
+    enabled: true
+    trustedNetworks: "10.0.0.0/8 2001:470:c0b5:5::0/64 2001:470:c0b5:4::0/64 2001:470:c0b5:2::0/64"
+
+  # Add selector to match your working config
+  selector:
+    app: mailserver
+
+# Persistence configuration
+persistence:
+  mail-data:
+    enabled: true
+    size: 10Gi
+    storageClass: "local-path"
+    accessModes:
+      - ReadWriteOnce
+
+  mail-state:
+    enabled: true
+    size: 5Gi
+    storageClass: "local-path"
+    accessModes:
+      - ReadWriteOnce
+
+  mail-config:
+    enabled: true
+    size: 1Gi
+    storageClass: "local-path"
+    accessModes:
+      - ReadWriteOnce
+
+# Enable proxy protocol support
+proxyProtocol:
+  enabled: true
+  trustedNetworks: "10.0.0.0/8 2001:470:c0b5:5::0/64 2001:470:c0b5:4::0/64 2001:470:c0b5:2::0/64"
