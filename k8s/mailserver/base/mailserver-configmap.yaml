@@ -1,39 +1,38 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mailserver-config
+  name: mailserver.environment
   namespace: default
 data:
-  .env: |
-    # General
-    OVERRIDE_HOSTNAME=mail.tunnel.threadr.ai
-    POSTMASTER_ADDRESS=postmaster@tunnel.threadr.ai
-    POSTSCREEN_ACTION=ignore
-    ONE_DIR=1
-    ENABLE_CLAMAV=0
-    ENABLE_SPAMASSASSIN=1
-    SPAMASSASSIN_SPAM_TO_INBOX=1
-    ENABLE_FAIL2BAN=1
-    SSL_TYPE=manual
-    
-    # IPv6 settings
-    NETWORK_INTERFACE=eth0
-    #PERMIT_DOCKER=connected-networks
-    POSTFIX_INET_PROTOCOLS=all
-    
-    #PERMIT_DOCKER=host
-    #PERMIT_DOCKER=all
-    PERMIT_DOCKER=none
-    
-    #POSTFIX_MYNETWORKS=2001:470:c0b5:5::0/64, 2001:470:c0b5:4::0/64, 2001:470:c0b5:2::0/64
-    POSTFIX_MYNETWORKS=10.0.0.0/8, 2001:470:c0b5:5::0/64, 2001:470:c0b5:4::0/64, 2001:470:c0b5:2::0/64
-    POSTSCREEN_UPSTREAM_PROXY_PROTOCOL=haproxy
-    POSTFIX_SUBMISSION_SMTPD_UPSTREAM_PROXY_PROTOCOL=haproxy
-    POSTFIX_SUBMISSIONS_SMTPD_UPSTREAM_PROXY_PROTOCOL=haproxy
-    ENABLE_POSTFIX_VIRTUAL_TRANSPORT=1
-    
-    DOVECOT_HAPROXY_TRUSTED_NETWORKS=10.0.0.0/8
-    DOVECOT_INET_PROTOCOLS=all
-
-    # Debug
-    LOG_LEVEL=trace
+  TLS_LEVEL: "modern"
+  POSTSCREEN_ACTION: "drop"
+  OVERRIDE_HOSTNAME: "mail.tunnel.threadr.ai"
+  FAIL2BAN_BLOCKTYPE: "drop"
+  POSTMASTER_ADDRESS: "postmaster@tunnel.threadr.ai"
+  UPDATE_CHECK_INTERVAL: "10d"
+  ENABLE_CLAMAV: "1"
+  ENABLE_POSTGREY: "0"
+  ENABLE_FAIL2BAN: "1"
+  AMAVIS_LOGLEVEL: "-1"
+  SPOOF_PROTECTION: "1"
+  MOVE_SPAM_TO_JUNK: "1"
+  ENABLE_UPDATE_CHECK: "1"
+  ENABLE_SPAMASSASSIN: "1"
+  SUPERVISOR_LOGLEVEL: "warn"
+  SPAMASSASSIN_SPAM_TO_INBOX: "1"
+  SSL_TYPE: "manual"
+  SSL_CERT_PATH: "/etc/letsencrypt/live/mail.tunnel.threadr.ai/tls.crt"
+  SSL_KEY_PATH: "/etc/letsencrypt/live/mail.tunnel.threadr.ai/tls.key"
+  NETWORK_INTERFACE: "eth0"
+  POSTFIX_INET_PROTOCOLS: "all"
+  PERMIT_DOCKER: "none"
+  POSTFIX_MYNETWORKS: "10.0.0.0/8, 2001:470:c0b5:5::0/64, 2001:470:c0b5:4::0/64, 2001:470:c0b5:2::0/64"
+  POSTSCREEN_UPSTREAM_PROXY_PROTOCOL: "haproxy"
+  POSTFIX_SUBMISSION_SMTPD_UPSTREAM_PROXY_PROTOCOL: "haproxy"
+  POSTFIX_SUBMISSIONS_SMTPD_UPSTREAM_PROXY_PROTOCOL: "haproxy"
+  ENABLE_POSTFIX_VIRTUAL_TRANSPORT: "1"
+  DOVECOT_INET_PROTOCOLS: "all"
+  LOG_LEVEL: "trace"
+  ENABLE_OPENDKIM: "1"
+  ENABLE_OPENDMARC: "1"
+  ENABLE_POLICYD_SPF: "1"

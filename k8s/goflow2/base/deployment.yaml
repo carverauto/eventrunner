@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goflow2
+  namespace: netflow
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: goflow2
+  template:
+    metadata:
+      labels:
+        app: goflow2
+    spec:
+      containers:
+        - name: goflow2
+          image: netsampler/goflow2:latest
+          ports:
+            - name: sflow
+              containerPort: 6343
+              protocol: UDP
+            - name: netflow
+              containerPort: 2055
+              protocol: UDP
+          envFrom:
+            - configMapRef:
+                name: goflow2-config
+          volumeMounts:
+            - name: logs
+              mountPath: /var/logs
+            - name: mapping
+              mountPath: /config/mapping.yaml
+              subPath: goflow2-mapping.yaml
+          args:
+            - "-listen=sflow://:6343?count=4,netflow://:2055"
+            - "-mapping=/config/mapping.yaml"
+      volumes:
+        - name: logs
+          emptyDir: {}
+        - name: mapping
+          configMap:
+            name: goflow2-config

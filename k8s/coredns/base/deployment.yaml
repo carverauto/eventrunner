@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns-custom
+  namespace: dns
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: coredns-custom
+  template:
+    metadata:
+      labels:
+        app: coredns-custom
+    spec:
+      containers:
+        - name: coredns
+          image: coredns/coredns:1.10.1
+          args: ["-conf", "/etc/coredns/Corefile"]
+          ports:
+            - containerPort: 53
+              name: dns
+              protocol: UDP
+            - containerPort: 53
+              name: dns-tcp
+              protocol: TCP
+            - containerPort: 9153
+              name: metrics
+              protocol: TCP
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/coredns
+            - name: zones-volume
+              mountPath: /etc/coredns/zones
+      volumes:
+        - name: config-volume
+          configMap:
+            name: coredns-custom
+        - name: zones-volume
+          configMap:
+            name: coredns-zones
