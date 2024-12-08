@@ -1,16 +1,31 @@
-# prometheus-values.yaml
 nameOverride: "promstack"
 fullnameOverride: "promstack"
 
 grafana:
   enabled: true
-  # Specify the adminpassword on the command line when installing.
-  # helm install promstack prometheus-community/kube-prometheus-stack \
-  # --namespace default \
-  # --create-namespace \
-  # --set grafana.adminPassword=Password123
 
-  # Service configuration to match your ingress
+  # Admin credentials
+  adminUser: admin
+  adminPassword: admin@123
+
+  # SMTP Secret Reference
+  smtp:
+    enabled: true
+    existingSecret: "grafana-secret"
+    userKey: "smtp_username"
+    passwordKey: "smtp_password"
+
+  # SMTP Configuration
+  grafana.ini:
+    smtp:
+      enabled: true
+      host: mail.tunnel.threadr.ai:25
+      from_address: grafana@tunnel.threadr.ai
+      from_name: Grafana
+      startTLS_policy: NoStartTLS
+      skip_verify: true
+
+  # Service configuration
   service:
     name: promstack-grafana
     port: 80
@@ -24,12 +39,10 @@ prometheus:
     podMonitorSelector: {}
     podMonitorNamespaceSelector: {}
 
-  # Service configuration to match your ingress
   service:
     name: promstack-kube-prometheus-prometheus
     port: 9090
 
-# Add PostgreSQL monitoring
 additionalServiceMonitors:
   - name: cloudnative-pg
     selector:

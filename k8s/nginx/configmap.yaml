@@ -11,3 +11,11 @@ data:
   proxy-body-size: "0"
   real-ip-header: "X-Forwarded-For"
   use-forwarded-headers: "true"
+  #error-log-level: "debug"
+  keep-alive-requests: "10000"
+  upstream-keepalive-requests: "1000"
+  max-worker-connections: "65535"
+  worker-processes: "auto"
+  #use-gzip: "true"
+  enable-vts-status: "true"
+

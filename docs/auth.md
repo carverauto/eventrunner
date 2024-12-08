@@ -99,6 +99,9 @@ curl -X POST http://hydra-admin.auth:4445/admin/clients \
 #### 3.1 Generate Authorization URL
 
 ```bash
+export CLIENT_ID="clientId"
+export REDIRECT_URI="https://api.tunnel.threadr.ai/callback"
+
 STATE=$(openssl rand -hex 16)
 AUTH_URL="https://hydra.tunnel.threadr.ai/oauth2/auth?\
 client_id=${CLIENT_ID}&\
