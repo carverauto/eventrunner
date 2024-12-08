@@ -5,10 +5,10 @@ metadata:
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
-    nginx.ingress.kubernetes.io/auth-response-headers: X-User,X-Tenant-ID,X-Request-Id,Authorization
-    nginx.ingress.kubernetes.io/auth-snippet: |
-      proxy_set_header X-Original-Uri $request_uri;
-    nginx.ingress.kubernetes.io/auth-url: http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions/health
+    #nginx.ingress.kubernetes.io/auth-response-headers: X-User,X-Tenant-ID,X-Request-Id,Authorization
+    #nginx.ingress.kubernetes.io/auth-snippet: |
+    #  proxy_set_header X-Original-Uri $request_uri;
+    #nginx.ingress.kubernetes.io/auth-url: http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions/health
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
@@ -35,8 +35,8 @@ metadata:
   namespace: eventrunner
   annotations:
     cert-manager.io/cluster-issuer: threadr-issuer
-    nginx.ingress.kubernetes.io/auth-response-headers: X-User,X-Tenant-ID,X-Request-Id,Authorization
-    nginx.ingress.kubernetes.io/auth-url: http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions/alive
+  #  nginx.ingress.kubernetes.io/auth-response-headers: X-User,X-Tenant-ID,X-Request-Id,Authorization
+  #  nginx.ingress.kubernetes.io/auth-url: http://oathkeeper-proxy.auth.svc.cluster.local:4455/decisions/alive
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
