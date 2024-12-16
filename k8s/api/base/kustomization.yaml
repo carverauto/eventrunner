@@ -6,6 +6,5 @@ resources:
   - api.yaml
   - configmap.yaml
   - health-alive-ingress.yaml
-  - service-proxy.yaml
   - ingress-api.yaml
   - ingress-callback.yaml
