@@ -9,10 +9,10 @@ data:
         {
           "id": "decisions-endpoint",
           "upstream": {
-            "url": "http://oathkeeper-api.oathkeeper.svc.cluster.local:4456"
+            "url": "http://oathkeeper-api:4456"
           },
           "match": {
-            "url": "http://oathkeeper-proxy.oathkeeper.svc.cluster.local/decisions",
+            "url": "http://oathkeeper-proxy/decisions",
             "methods": ["GET"]
           },
           "authenticators": [
