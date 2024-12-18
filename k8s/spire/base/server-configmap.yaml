@@ -32,8 +32,8 @@ data:
 
       UpstreamAuthority "cert-manager" {
         plugin_data {
-          issuer_name = "spire-ca-issuer"
-          issuer_kind = "ClusterIssuer"
+          issuer_name = "spire-intermediate-issuer"
+          issuer_kind = "Issuer"
           issuer_group = "cert-manager.io"
           namespace = "spire"
           ca_bundle_path = "/etc/cert-manager/ca/ca.crt"
