@@ -1,5 +1,18 @@
 # spire server setup
 
+## Setup secret
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spire-postgres
+  namespace: spire
+type: Opaque
+stringData:
+  DB_PASSWORD: ""
+```
+
 ## Create server
 
 ```shell
@@ -22,3 +35,5 @@ kubectl exec -n spire spire-server-0 -- \
     -selector k8s:ns:default \
     -selector k8s:sa:default
 ```
+
+
