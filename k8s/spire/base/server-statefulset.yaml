@@ -46,6 +46,9 @@ spec:
           ports:
             - containerPort: 8081
           volumeMounts:
+            - name: cert-manager-ca
+              mountPath: /etc/cert-manager-ca
+              readOnly: true
             - name: generated-config
               mountPath: /run/spire/config
               readOnly: true
@@ -67,6 +70,12 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
+        - name: cert-manager-ca
+          configMap:
+            name: cert-manager-ca
+            items:
+              - key: ca.crt
+                path: ca.crt
         - name: spire-config-template
           configMap:
             name: spire-server

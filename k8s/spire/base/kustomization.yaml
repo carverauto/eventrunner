@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: spire
 
 resources:
+- cluster-issuer.yaml
 - spire-namespace.yaml
 - agent-account.yaml
 - agent-cluster-role.yaml
