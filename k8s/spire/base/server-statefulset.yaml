@@ -18,6 +18,25 @@ spec:
         app: spire-server
     spec:
       serviceAccountName: spire-server
+      initContainers:
+        - name: init-config
+          image: busybox
+          command: ['sh', '-c']
+          args:
+            - |
+              cp /config-template/server.conf /config/server.conf
+              sed -i "s|__DB_PASSWORD__|$DB_PASSWORD|g" /config/server.conf
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: spire-postgres
+                  key: DB_PASSWORD
+          volumeMounts:
+            - name: spire-config-template
+              mountPath: /config-template
+            - name: generated-config
+              mountPath: /config
       containers:
         - name: spire-server
           image: ghcr.io/spiffe/spire-server:1.5.1
@@ -27,7 +46,7 @@ spec:
           ports:
             - containerPort: 8081
           volumeMounts:
-            - name: spire-config
+            - name: generated-config
               mountPath: /run/spire/config
               readOnly: true
             - name: spire-data
@@ -48,9 +67,11 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
-        - name: spire-config
+        - name: spire-config-template
           configMap:
             name: spire-server
+        - name: generated-config
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: spire-data
