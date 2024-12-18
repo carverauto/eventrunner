@@ -33,6 +33,12 @@ rules:
 - apiGroups: ["authentication.k8s.io"]
   resources: ["tokenreviews"]
   verbs: ["create"]
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificaterequests"]
+  verbs: ["create", "get", "list", "watch"]
+- apiGroups: ["cert-manager.io"]
+  resources: ["clusterissuers"]
+  verbs: ["get", "list", "watch"]
 ---
 # Binds above cluster role to spire-server service account
 kind: ClusterRoleBinding
