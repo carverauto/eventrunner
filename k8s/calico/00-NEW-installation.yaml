@@ -7,8 +7,8 @@ spec:
     containerIPForwarding: Enabled
     ipPools:
     - blockSize: 26
-      cidr: 10.42.0.0/24
-      encapsulation: VXLANCrossSubnet
+      cidr: 10.42.0.0/16
+      encapsulation: None
       natOutgoing: Enabled
       nodeSelector: all()
     - blockSize: 122
