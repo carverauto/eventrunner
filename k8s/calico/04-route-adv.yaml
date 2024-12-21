@@ -4,6 +4,7 @@ metadata:
   name: default
 spec:
   logSeverityScreen: Debug
+  nodeToNodeMeshEnabled: true
   asNumber: 65000
   serviceClusterIPs:
     - cidr: 10.43.0.0/16
