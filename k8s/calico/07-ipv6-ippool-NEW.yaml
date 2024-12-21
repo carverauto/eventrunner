@@ -16,9 +16,9 @@ spec:
 apiVersion: projectcalico.org/v3
 kind: IPPool
 metadata:
-  name: default-ipv4-ippool-16
+  name: default-ipv4-ippool-42
 spec:
-  cidr: 10.44.0.0/16
+  cidr: 10.42.0.0/16
   ipipMode: Never
   vxlanMode: Never
   natOutgoing: true
