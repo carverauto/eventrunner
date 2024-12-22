@@ -6,9 +6,8 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.threadr.ai"
     metallb.universe.tf/address-pool: k3s-pool
-    metallb.universe.tf/loadBalancerIPs: "2001:470:c0b5:6::2,10.43.0.25"
 spec:
-  externalTrafficPolicy: Local
+  externalTrafficPolicy: Cluster
   type: LoadBalancer
   ipFamilyPolicy: PreferDualStack
   ipFamilies:

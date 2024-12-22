@@ -4,6 +4,7 @@ metadata:
   name: default
 spec:
   calicoNetwork:
+    mtu: 1480
     containerIPForwarding: Enabled
     ipPools:
     - blockSize: 26
