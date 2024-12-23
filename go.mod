@@ -18,7 +18,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
-	github.com/ory/client-go v1.15.15
+	github.com/ory/client-go v1.15.16
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/mock v0.5.0
