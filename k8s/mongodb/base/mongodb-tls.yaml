@@ -4,7 +4,7 @@ metadata:
   name: mongodb-tls
   namespace: mongo
 spec:
-  secretName: mongodb-tls-secret
+  secretName: mongodb-standalone-cert
   duration: 2160h # 90 days
   renewBefore: 360h # 15 days before expiration
   issuerRef:

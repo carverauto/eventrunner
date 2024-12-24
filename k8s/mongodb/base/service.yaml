@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: er-mongodb
+  namespace: mongo
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: mongodb.tunnel.threadr.ai
+    metallb.universe.tf/address-pool: k3s-pool
+    metallb.universe.tf/allow-shared-ip: "true"
+spec:
+  type: LoadBalancer
+  ipFamilyPolicy: RequireDualStack
+  ipFamilies:
+    - IPv4
+    - IPv6
+  ports:
+    - port: 27017
+      targetPort: mongodb
+  selector:
+    app.kubernetes.io/component: mongodb
+    app.kubernetes.io/instance: er
+    app.kubernetes.io/name: mongodb
