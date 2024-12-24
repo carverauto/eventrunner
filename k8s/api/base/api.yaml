@@ -30,12 +30,19 @@ spec:
             - configMapRef:
                 name: api-config
           volumeMounts:
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+              readOnly: true
             - name: config
               mountPath: /app/configs
             - name: nats-creds
               mountPath: /app/nats.creds
               subPath: nats.creds
       volumes:
+        - name: spire-agent-socket
+          hostPath:
+            path: /run/spire/sockets
+            type: Directory
         - name: config
           configMap:
             name: api-config

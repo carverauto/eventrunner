@@ -3,8 +3,17 @@ kind: Service
 metadata:
   name: spire-server
   namespace: spire
+  annotations:
+    metallb.universe.tf/address-pool: k3s-pool
+    metallb.universe.tf/allow-shared-ip: "true"
+    external-dns.alpha.kubernetes.io/hostname: "spire.tunnel.threadr.ai"
 spec:
-  type: NodePort
+  type: LoadBalancer
+  ipFamilyPolicy: PreferDualStack
+  ipFamilies:
+    - IPv4
+    - IPv6
+  externalTrafficPolicy: Cluster
   ports:
     - name: grpc
       port: 8081
