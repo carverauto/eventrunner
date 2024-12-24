@@ -1,8 +1,0 @@
-apiVersion:  projectcalico.org/v3
-kind: BGPConfiguration
-metadata:
-  name: default
-spec:
-  logSeverityScreen: Debug
-  asNumber: 65000
-
