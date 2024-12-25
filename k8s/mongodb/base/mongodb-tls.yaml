@@ -4,15 +4,25 @@ metadata:
   name: mongodb-tls
   namespace: mongo
 spec:
-  secretName: mongodb-standalone-cert
-  duration: 2160h # 90 days
+  # This secret will contain tls.crt, tls.key, and (usually) ca.crt
+  secretName: mongodb-tls-secret
+
+  # Validity of certificate
+  duration: 2160h   # 90 days
   renewBefore: 360h # 15 days before expiration
+
+  # This references your cert-manager Issuer or ClusterIssuer
   issuerRef:
-    kind: ClusterIssuer
-    name: threadr-issuer
-  commonName: mongodb.tunnel.threadr.ai
+    kind: ClusterIssuer          # or 'Issuer' if that's what you have
+    name: threadr-issuer         # The name of your issuer resource
+
+  # The CN and SANs that will appear on the certificate
+  commonName: "mongodb.tunnel.threadr.ai"
   dnsNames:
-    - mongodb.tunnel.threadr.ai
+    - "mongodb.tunnel.threadr.ai"
+
+  # You can allow both server and client usage if you want X.509 client capabilities
+  # If you do NOT need X.509 client usage, you can remove 'client auth'.
   usages:
     - digital signature
     - key encipherment

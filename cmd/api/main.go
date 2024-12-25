@@ -22,6 +22,8 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -147,23 +149,32 @@ func testEndpoint(c *gofr.Context) (interface{}, error) {
 }
 
 func getTLSConfigForMongo() (*tls.Config, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	log.Printf("Starting getTLSConfigForMongo")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Print the current process UID
+	log.Printf("Current process UID: %d", os.Getuid())
+
+	log.Printf("Creating X509Source with socket path: unix:///tmp/spire-agent.sock")
 	source, err := workloadapi.NewX509Source(ctx,
 		workloadapi.WithClientOptions(
 			workloadapi.WithAddr("unix:///tmp/spire-agent.sock"),
 		),
 	)
 	if err != nil {
-		return nil, err
+		log.Printf("Error creating X509Source: %v", err)
+		return nil, fmt.Errorf("error creating X509Source: %v", err)
 	}
 	defer source.Close()
 
+	log.Printf("Getting X509SVID")
 	svid, err := source.GetX509SVID()
 	if err != nil {
-		return nil, err
+		log.Printf("Error getting X509SVID: %v", err)
+		return nil, fmt.Errorf("error getting X509SVID: %v", err)
 	}
+	log.Printf("Got SVID with ID: %s", svid.ID)
 
 	rootCAs := x509.NewCertPool()
 	bundle, err := source.GetX509BundleForTrustDomain(spiffeid.RequireTrustDomainFromString("tunnel.threadr.ai"))
