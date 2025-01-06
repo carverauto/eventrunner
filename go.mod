@@ -15,7 +15,7 @@ exclude github.com/carverauto/eventrunner/cmd/api v0.0.0-00010101000000-00000000
 require (
 	github.com/carverauto/gofr-nats v0.0.0-20241111012639-3494de91bb87
 	github.com/cloudevents/sdk-go/v2 v2.15.2
-	github.com/coreos/go-oidc/v3 v3.11.0
+	github.com/coreos/go-oidc/v3 v3.12.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/ory/client-go v1.15.15
