@@ -25,7 +25,7 @@ require (
 	gofr.dev v1.28.2
 	gofr.dev/pkg/gofr/datasource/cassandra v0.3.0
 	gofr.dev/pkg/gofr/datasource/mongo v0.3.0
-	google.golang.org/grpc v1.69.0
+	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.0
 )
 
