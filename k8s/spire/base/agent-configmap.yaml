@@ -12,14 +12,14 @@ data:
       server_port = "8081"
       socket_path = "/run/spire/sockets/agent.sock"
       trust_bundle_path = "/run/spire/bundle/bundle.crt"
-      trust_domain = "tunnel.threadr.ai"
+      trust_domain = "tunnel.carverauto.dev"
     }
 
     plugins {
       NodeAttestor "k8s_sat" {
         plugin_data {
           # NOTE: Change this to your cluster name
-          cluster = "threadr-cluster"
+          cluster = "carverauto-cluster"
         }
       }
 

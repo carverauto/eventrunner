@@ -17,11 +17,11 @@ spec:
       serviceAccountName: external-dns
       containers:
         - name: external-dns
-          image: registry.k8s.io/external-dns/external-dns:v0.15.0
+          image: registry.k8s.io/external-dns/external-dns:v0.15.1
           args:
             - --source=service
             - --source=ingress
-            - --domain-filter=threadr.ai
+            - --domain-filter=
             - --provider=cloudflare
             - --cloudflare-dns-records-per-page=5000 # (optional) configure how many DNS records to fetch per request
             - --log-level=debug
@@ -51,8 +51,6 @@ spec:
                 secretKeyRef:
                   name: cloudflare-api-secret
                   key: CF_API_EMAIL
-            - name: KUBERNETES_NODE_SELECTOR
-              value: "kubernetes.io/os=linux"
           livenessProbe:
             httpGet:
               path: /healthz

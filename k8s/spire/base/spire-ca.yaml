@@ -11,7 +11,7 @@ spec:
   duration: 8760h # 1 year
   renewBefore: 720h # 30 days
   dnsNames:
-    - "spire.tunnel.threadr.ai"
+    - "spire.tunnel.carverauto.dev"
   issuerRef:
     name: spire-root-issuer
     kind: ClusterIssuer

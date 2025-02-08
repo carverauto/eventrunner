@@ -9,7 +9,7 @@ data:
       bind_address = "0.0.0.0"
       bind_port = "8081"
       socket_path = "/tmp/spire-server/private/api.sock"
-      trust_domain = "tunnel.threadr.ai"
+      trust_domain = "tunnel.carverauto.dev"
       data_dir = "/run/spire/data"
       log_level = "DEBUG"
       #AWS requires the use of RSA.  EC cryptography is not supported
@@ -18,7 +18,7 @@ data:
       ca_subject = {
         country = ["US"],
         organization = ["Carver Automation Corporation"],
-        common_name = "tunnel.threadr.ai",
+        common_name = "tunnel.carverauto.dev",
       }
     }
 
@@ -44,7 +44,7 @@ data:
         plugin_data {
           clusters = {
             # NOTE: Change this to your cluster name
-            "threadr-cluster" = {
+            "carverauto-cluster" = {
               use_token_review_api_validation = true
               service_account_allow_list = ["spire:spire-agent"]
             }

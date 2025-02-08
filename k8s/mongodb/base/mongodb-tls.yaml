@@ -9,10 +9,10 @@ spec:
   renewBefore: 360h # 15 days before expiration
   issuerRef:
     kind: ClusterIssuer
-    name: threadr-issuer
-  commonName: mongodb.tunnel.threadr.ai
+    name: carverauto-issuer
+  commonName: mongodb.tunnel.carverauto.dev
   dnsNames:
-    - mongodb.tunnel.threadr.ai
+    - mongodb.tunnel.carverauto.dev
   usages:
     - digital signature
     - key encipherment

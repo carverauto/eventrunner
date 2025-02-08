@@ -28,8 +28,8 @@ deployment:
 
   env:
     # General
-    OVERRIDE_HOSTNAME: "mail.tunnel.threadr.ai"
-    POSTMASTER_ADDRESS: "postmaster@tunnel.threadr.ai"
+    OVERRIDE_HOSTNAME: "mail.tunnel.carverauto.dev"
+    POSTMASTER_ADDRESS: "postmaster@tunnel.carverauto.dev"
     POSTSCREEN_ACTION: "ignore"
     ONE_DIR: 1
     ENABLE_CLAMAV: 0
@@ -39,8 +39,8 @@ deployment:
 
     # SSL Configuration
     SSL_TYPE: "manual"
-    SSL_CERT_PATH: "/etc/letsencrypt/live/mail.tunnel.threadr.ai/tls.crt"
-    SSL_KEY_PATH: "/etc/letsencrypt/live/mail.tunnel.threadr.ai/tls.key"
+    SSL_CERT_PATH: "/etc/letsencrypt/live/mail.tunnel.carverauto.dev/tls.crt"
+    SSL_KEY_PATH: "/etc/letsencrypt/live/mail.tunnel.carverauto.dev/tls.key"
 
     # Network settings
     NETWORK_INTERFACE: "eth0"
@@ -66,7 +66,7 @@ service:
 
   # Put all other service configs under annotations since they're not natively supported
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.threadr.ai"
+    external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.carverauto.dev"
     metallb.universe.tf/address-pool: "k3s-pool"
     kubernetes.io/ip-family-policy: "PreferDualStack"
     service.kubernetes.io/external-traffic-policy: "Local"
