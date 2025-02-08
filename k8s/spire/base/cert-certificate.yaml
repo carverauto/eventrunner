@@ -7,16 +7,16 @@ spec:
   secretName: spire-ca-key-pair
   duration: 8760h # 1 year
   renewBefore: 720h # 30 days
-  commonName: "spire.tunnel.threadr.ai"
+  commonName: "spire.tunnel.carverauto.dev"
   dnsNames:
-    - "spire.tunnel.threadr.ai"
+    - "spire.tunnel.carverauto.dev"
   isCA: true
   privateKey:
     algorithm: RSA
     encoding: PKCS1
     size: 4096
   issuerRef:
-    name: threadr-issuer
+    name: carverauto-issuer
     kind: ClusterIssuer
     group: cert-manager.io
 ---

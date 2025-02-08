@@ -82,7 +82,7 @@ spec:
             - name: mailconfig
               mountPath: /tmp/docker-mailserver
             - name: certificates-rsa
-              mountPath: /etc/letsencrypt/live/mail.tunnel.threadr.ai
+              mountPath: /etc/letsencrypt/live/mail.tunnel.carverauto.dev
               readOnly: true
           envFrom:
             - configMapRef:

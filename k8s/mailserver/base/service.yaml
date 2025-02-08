@@ -4,7 +4,7 @@ metadata:
   name: mailserver
   namespace: default
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.threadr.ai"
+    external-dns.alpha.kubernetes.io/hostname: "mail.tunnel.carverauto.dev"
     metallb.universe.tf/address-pool: k3s-pool
 spec:
   externalTrafficPolicy: Cluster

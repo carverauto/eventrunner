@@ -6,7 +6,7 @@ metadata:
 spec:
   commonName: "Spire Intermediate CA"
   dnsNames:
-  - "spire.tunnel.threadr.ai"
+  - "spire.tunnel.carverauto.dev"
   duration: 8760h
   isCA: true
   issuerRef:

@@ -5,15 +5,15 @@ metadata:
   namespace: mongo
   annotations:
     kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: threadr-issuer
-    external-dns.alpha.kubernetes.io/hostname: "mongodb.tunnel.threadr.ai"
+    cert-manager.io/cluster-issuer: carverauto-issuer
+    external-dns.alpha.kubernetes.io/hostname: "mongodb.tunnel.carverauto.dev"
 spec:
   tls:
     - hosts:
-        - mongodb.tunnel.threadr.ai
+        - mongodb.tunnel.carverauto.dev
       secretName: mongodb-tls-secret
   rules:
-    - host: mongodb.tunnel.threadr.ai
+    - host: mongodb.tunnel.carverauto.dev
       http:
         paths:
           - path: /
