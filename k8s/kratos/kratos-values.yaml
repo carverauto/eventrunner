@@ -101,14 +101,14 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
     hosts:
-      - host: kratos-admin.threadr.tunnel.ai
+      - host: kratos-admin.tunnel.carverauto.dev
         paths:
           - path: /
             pathType: ImplementationSpecific
     tls:
       - secretName: auth-services-tls
         hosts:
-          - kratos-admin.threadr.tunnel.ai
+          - kratos-admin.tunnel.carverauto.dev
   public:
     enabled: false
     className: "nginx"
@@ -116,7 +116,7 @@ ingress:
       # nginx.org/rewrites: "serviceName=kratos-public rewrite=/"
     # nginx.ingress.kubernetes.io/use-regex: "true"
     hosts:
-      - host: kratos.tunnel.threadr.ai
+      - host: kratos.tunnel.carverauto.dev
         paths:
           - path: /
             pathType: Prefix
@@ -135,7 +135,7 @@ ingress:
     tls:
       - secretName: auth-services-tls
         hosts:
-          - "*.tunnel.threadr.ai"
+          - "*.tunnel.carverauto.dev"
 
 log:
   level: debug
@@ -231,30 +231,30 @@ kratos:
     dsn: ""
     serve:
       public:
-        base_url: https://kratos.tunnel.threadr.ai/app
+        base_url: https://kratos.tunnel.carverauto.dev/app
         port: 4433
       admin:
-        base_url: https://kratos-admin.tunnel.threadr.ai
+        base_url: https://kratos-admin.tunnel.carverauto.dev
         port: 4434
 
     secrets: {}
     selfservice:
-      default_browser_return_url: https://kratos.tunnel.threadr.ai/
+      default_browser_return_url: https://kratos.tunnel.carverauto.dev/
       allowed_return_urls:
-        - https://kratos.tunnel.threadr.ai/
+        - https://kratos.tunnel.carverauto.dev/
       flows:
         error:
-          ui_url: https://kratos.tunnel.threadr.ai/error
+          ui_url: https://kratos.tunnel.carverauto.dev/error
         login:
-          ui_url: https://kratos.tunnel.threadr.ai/login
+          ui_url: https://kratos.tunnel.carverauto.dev/login
 
         verification:
           enabled: true
-          ui_url: https://kratos.tunnel.threadr.ai/verification
+          ui_url: https://kratos.tunnel.carverauto.dev/verification
         registration:
-          ui_url: https://kratos.tunnel.threadr.ai/registration
+          ui_url: https://kratos.tunnel.carverauto.dev/registration
         settings:
-          ui_url: https://kratos.tunnel.threadr.ai/settings
+          ui_url: https://kratos.tunnel.carverauto.dev/settings
 
       methods:
         oidc:
