@@ -11,10 +11,10 @@ spec:
   renewBefore: 360h # 15 days before expiration
   issuerRef:
     kind: ClusterIssuer
-    name: threadr-issuer
-  commonName: "*.tunnel.threadr.ai"
+    name: carverauto-issuer
+  commonName: "*.tunnel.carverauto.dev"
   dnsNames:
-    - "*.tunnel.threadr.ai"
+    - "*.tunnel.carverauto.dev"
   usages:
     - digital signature
     - key encipherment

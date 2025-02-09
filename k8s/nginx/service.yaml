@@ -8,10 +8,10 @@ metadata:
     metallb.universe.tf/allow-shared-ip: "true"
 spec:
   type: LoadBalancer
-  ipFamilyPolicy: RequireDualStack
+  ipFamilyPolicy: PreferDualStack
   ipFamilies:
-    - IPv6
     - IPv4
+    - IPv6
   externalTrafficPolicy: Local
   ports:
     - name: http

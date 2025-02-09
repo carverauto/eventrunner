@@ -50,15 +50,15 @@ ingress:
   enabled: true
   className: "nginx"
   annotations:
-    cert-manager.io/cluster-issuer: "threadr-issuer"
-    external-dns.alpha.kubernetes.io/hostname: "kratos.tunnel.threadr.ai"
+    cert-manager.io/cluster-issuer: "carverauto-issuer"
+    external-dns.alpha.kubernetes.io/hostname: "kratos.tunnel.carverauto.dev"
     nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       rewrite ^/app/(.*) /$1 break;
     metallb.universe.tf/allow-shared-ip: "true"
     metallb.universe.tf/address-pool: k3s-pool
   hosts:
-    - host: kratos.tunnel.threadr.ai
+    - host: kratos.tunnel.carverauto.dev
       paths:
         - path: /app/self-service
           pathType: Prefix
@@ -84,7 +84,7 @@ ingress:
   tls:
     - secretName: auth-services-tls
       hosts:
-        - "*.tunnel.threadr.ai"
+        - "*.tunnel.carverauto.dev"
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -136,10 +136,10 @@ secret:
   name: app-env-secret
 env:
   secret:
-    CSRF_COOKIE_NAME: "__HOST-kratos.tunnel.threadr.ai"
-    COOKIE_SECRET: "e483c93bc1e9eab3cd65105128b0605aceecceeff100c541b06b1698bca6a497"
-    CSRF_COOKIE_SECRET: "a21736d7cefe107b2bf0a156884d9bf35e32ff642290c23e5c054ca10ccde879"
+    CSRF_COOKIE_NAME: "__HOST-kratos.tunnel.carverauto.dev"
+    COOKIE_SECRET: "5b7e6b4a6cb3f9f550b5315475f1b8e6091d62f06c339f86d3c080ced94c2092"
+    CSRF_COOKIE_SECRET: "465df99b19cceb6dcebf53a07b980e87399a18b38f70e17d577198edf0ff7002"
     DANGEROUSLY_DISABLE_SECURE_CSRF_COOKIES: "true"
-    KRATOS_PUBLIC_URL: "https://kratos.tunnel.threadr.ai/"
+    KRATOS_PUBLIC_URL: "https://kratos.tunnel.carverauto.dev/"
     KRATOS_ADMIN_URL: "http://kratos-admin.auth"
     HYDRA_ADMIN_URL: "http://hydra-admin.auth:4445"

@@ -20,9 +20,9 @@ rules:
     resources: ["endpoints"]
     verbs: ["get","watch","list"]
   # Add DNS CRD permissions
-  - apiGroups: ["dns.threadr.ai"]
+  - apiGroups: ["dns.tunnel.carverauto.dev"]
     resources: ["dnsendpoints"]
     verbs: ["get","watch","list","create","update","patch","delete"]
-  - apiGroups: ["dns.threadr.ai"]
+  - apiGroups: ["dns.tunnel.carverauto.dev"]
     resources: ["dnsendpoints/status"]
     verbs: ["get","update","patch"]
