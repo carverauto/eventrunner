@@ -12,10 +12,6 @@ kind: Service
 metadata:
   name: ingress-nginx-controller
   namespace: ingress-nginx
-  annotations:
-    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "27017"
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account-id:certificate/certificate-id"  # Replace with your ACM cert ARN
 spec:
   type: LoadBalancer
   ports:
