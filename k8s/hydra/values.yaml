@@ -30,10 +30,10 @@ hydra:
         port: 4445
     urls:
       self:
-        issuer: https://hydra.tunnel.threadr.ai/
-      login: https://kratos.tunnel.threadr.ai/login
-      consent: https://kratos.tunnel.threadr.ai/consent
-      logout: https://kratos.tunnel.threadr.ai/logout
+        issuer: https://hydra.tunnel.carverauto.dev/
+      login: https://kratos.tunnel.carverauto.dev/login
+      consent: https://kratos.tunnel.carverauto.dev/consent
+      logout: https://kratos.tunnel.carverauto.dev/logout
     strategies:
       access_token: jwt
       jwt:
@@ -163,13 +163,13 @@ ingress:
     enabled: true
     className: "nginx"
     hosts:
-      - host: hydra.tunnel.threadr.ai
+      - host: hydra.tunnel.carverauto.dev
         paths:
           - path: /
             pathType: Prefix
     tls:
       - secretName: auth-services-tls
         hosts:
-          - "*.tunnel.threadr.ai"
+          - "*.tunnel.carverauto.dev"
   admin:
     enabled: false

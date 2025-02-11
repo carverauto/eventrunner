@@ -21,7 +21,8 @@ sysctl net.ipv6.conf.all.forwarding
 ### 2. Static Routes
 Added necessary static routes on the UDM Pro to ensure proper IPv6 routing between subnets:
 ```bash
-ip -6 route add 2001:470:c0b5:2::/64 dev br2
+#ip -6 route add 2001:470:c0b5:5::/64 dev br2
+ip route add 10.43.0.0/16 dev br2
 ```
 
 Note: These static routes will need to be re-added after router reboots unless configured persistently.

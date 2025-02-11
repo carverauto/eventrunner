@@ -1,8 +1,0 @@
-apiVersion: metallb.io/v1beta1
-kind: BGPAdvertisement
-metadata:
-  name: k3s-advertisement
-  namespace: metallb-system
-spec:
-  ipAddressPools:
-  - k3s-pool
