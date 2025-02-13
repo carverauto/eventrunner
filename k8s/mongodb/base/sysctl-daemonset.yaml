@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mongodb-sysctl-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: mongodb-sysctl
+  template:
+    metadata:
+      labels:
+        app: mongodb-sysctl
+    spec:
+      hostPID: true # Required for sysctl changes
+      containers:
+      - name: sysctl-setter
+        image: busybox:latest # A small utility image
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          sysctl -w vm.max_map_count=262144
+          sysctl -w vm.swappiness=0
+        securityContext:
+          privileged: true # Required to change sysctl settings
+        volumeMounts:
+        - name: sysctl-config
+          mountPath: /etc/sysctl.d
+      volumes:
+      - name: sysctl-config
+        configMap:
+          name: mongodb-sysctl
