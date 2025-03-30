@@ -1,7 +1,6 @@
 module github.com/carverauto/eventrunner
 
 go 1.23.1
-
 replace github.com/carverauto/gofr-nats => ../gofr-nats
 
 replace gofr.dev/pkg/gofr/datasource/cassandra => ../gofr/pkg/gofr/datasource/cassandra
@@ -18,7 +17,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
-	github.com/ory/client-go v1.15.15
+	github.com/ory/client-go v1.17.2
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/mock v0.5.0
@@ -124,7 +123,7 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20241215155358-4a5509556b9e // indirect
 	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/oauth2 v0.24.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
